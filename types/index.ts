@@ -74,6 +74,7 @@ export interface Observation {
   pos_y: number | null
   intervenant_id: string | null
   created_by: string | null
+  created_by_name: string | null
   created_at: string
   updated_at: string
   // Relations

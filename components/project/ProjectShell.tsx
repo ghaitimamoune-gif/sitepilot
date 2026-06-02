@@ -1,10 +1,8 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import type { Observation, Reserve, Task, Intervenant, Checklist } from '@/types'
-import { OBS_STATUS_CONFIG, PRIORITY_CONFIG } from '@/types'
 
 // ============ CONTEXT ============
 interface ProjectData {
@@ -44,11 +42,10 @@ function Avt({ name, color, size = 28 }: { name: string; color?: string; size?: 
 
 // ============ SHELL ============
 export function ProjectShell({ data: initialData, projectId, children }: { data: ProjectData; projectId: string; children: React.ReactNode }) {
-  const [data, setData] = useState(initialData)
+  const [data] = useState(initialData)
   const [toast, setToast] = useState<string | null>(null)
   const router = useRouter()
   const pathname = usePathname()
-  const supabase = createClient()
 
   function refresh() { router.refresh() }
 

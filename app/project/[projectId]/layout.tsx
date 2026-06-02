@@ -43,16 +43,20 @@ export default async function ProjectLayout({
     project,
     intervenants: intervenants || [],
     plans: plans || [],
-    observations: (observations || []).map((o: { obs_photos: unknown[]; obs_comments: unknown[]; obs_history: unknown[] }) => ({
-      ...o, photos: o.obs_photos || [], comments: o.obs_comments || [], history: o.obs_history || [],
+    observations: (observations || []).map((o: Record<string, unknown>) => ({
+      ...o,
+      photos: (o.obs_photos as unknown[]) || [],
+      comments: (o.obs_comments as unknown[]) || [],
+      history: (o.obs_history as unknown[]) || [],
     })),
-    reserves: (reserves || []).map((r: { reserve_photos: unknown[] }) => ({ ...r, photos: r.reserve_photos || [] })),
+    reserves: (reserves || []).map((r: Record<string, unknown>) => ({ ...r, photos: (r.reserve_photos as unknown[]) || [] })),
     tasks: tasks || [],
     documents: documents || [],
-    checklists: (checklists || []).map((cl: { checklist_items: unknown[] }) => ({ ...cl, items: cl.checklist_items || [] })),
+    checklists: (checklists || []).map((cl: Record<string, unknown>) => ({ ...cl, items: (cl.checklist_items as unknown[]) || [] })),
     notifications: notifications || [],
     currentUser: { id: user.id, email: user.email || '', name: profile?.full_name || user.email || '', role: profile?.role || 'chef_projet' },
   }
 
-  return <ProjectShell data={data} projectId={projectId}>{children}</ProjectShell>
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  return <ProjectShell data={data as any} projectId={projectId}>{children}</ProjectShell>
 }
