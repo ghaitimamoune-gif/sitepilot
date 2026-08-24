@@ -126,13 +126,22 @@ begin
   perform test_ok('solde du client à 150',
     (select points_balance from public.customers where phone = '+212612345678') = 150);
 
-  -- Repasser par completed ne doit rien recréditer.
+  perform test_ok('compteur de commandes à 1',
+    (select orders_count from public.customers where phone = '+212612345678') = 1);
+  perform test_ok('dépense cumulée à 15000 centimes',
+    (select lifetime_spend from public.customers where phone = '+212612345678') = 15000);
+
+  -- Repasser par completed ne doit rien recréditer ni regonfler les compteurs.
   perform public.set_order_status(v_order, 'preparing');
   v_res := public.set_order_status(v_order, 'completed');
   perform test_ok('pas de double crédit sur la même commande',
     (v_res->>'points_credited')::int = 0);
   perform test_ok('solde inchangé',
     (select points_balance from public.customers where phone = '+212612345678') = 150);
+  perform test_ok('compteur de commandes inchangé',
+    (select orders_count from public.customers where phone = '+212612345678') = 1);
+  perform test_ok('dépense cumulée inchangée',
+    (select lifetime_spend from public.customers where phone = '+212612345678') = 15000);
 end $$;
 
 \echo '--- LA garantie : un ticket = un crédit'

@@ -206,11 +206,19 @@ begin
   if p_status = 'completed' then
     v_points := public.credit_order_points(p_order_id);
 
-    update public.customers c
-       set orders_count   = c.orders_count + 1,
-           lifetime_spend = c.lifetime_spend + v_order.total_cents,
-           last_order_at  = now()
-     where c.id = v_order.customer_id;
+    -- Les compteurs ne bougent qu'au PREMIER passage en terminée.
+    -- Sans ce garde-fou, un responsable qui repasse une commande en
+    -- préparation puis à nouveau en terminée gonfle la dépense cumulée et
+    -- le nombre de commandes du client. Les points, eux, sont déjà protégés
+    -- par l'index unique du ledger : ce sont bien les compteurs qui
+    -- manquaient d'une garde.
+    if v_order.completed_at is null then
+      update public.customers c
+         set orders_count   = c.orders_count + 1,
+             lifetime_spend = c.lifetime_spend + v_order.total_cents,
+             last_order_at  = now()
+       where c.id = v_order.customer_id;
+    end if;
   end if;
 
   perform public.write_audit(

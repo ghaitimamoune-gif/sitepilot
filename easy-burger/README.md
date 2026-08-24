@@ -12,16 +12,26 @@ marketplace Glovo vers notre canal direct, et savoir enfin qui ils sont.
 | Phase | Contenu | État |
 |---|---|---|
 | **0** | Projet, tokens de design, PWA, composants de base | ✅ terminée |
-| 1 | Menu, panier, commande en espèces, file admin | à venir |
-| 2 | Auth téléphone + OTP, ledger de points | à venir |
+| **1** | Menu, panier, commande en espèces, file admin | ✅ terminée |
+| 2 | Auth téléphone + OTP, profil, adresses | à venir |
 | 3 | Boutique de récompenses, codes à 6 chiffres | à venir |
-| 4 | Back-office complet | à venir |
-| 5 | Écran caisse, codes Glovo, tickets Lacaisse | à venir |
+| 4 | Back-office complet (menu, réglages, tableau de bord) | à venir |
+| 5 | Codes Glovo, import et rapprochement des tickets Lacaisse | à venir |
 | 6 | Paiement en ligne (Payzone puis CMI) | à venir |
 | 7 | Messages (SMS puis WhatsApp) | à venir |
 
-Le livrable de la Phase 0 est la page **`/design-system`** : elle affiche tous
-les composants et renvoie, bloc par bloc, à la section du brief qui les définit.
+**À la fin de la Phase 1, on peut prendre des commandes.** Le parcours va du
+menu au suivi, la file de commandes tourne, et les points tombent tout seuls.
+
+Deux morceaux ont été avancés sur demande, parce qu'ils changent la forme du
+socle et coûtent cher à rétro-ajouter :
+
+- **Le ledger de points et son unicité par source** (normalement Phase 2) —
+  voir « Un ticket = un crédit » plus bas.
+- **Les rôles du personnel et le superadmin** (normalement Phase 4) — pour
+  gérer les points d'un client à la main, sans dépendre d'une API de caisse.
+
+Le livrable de la Phase 0 reste visible sur **`/design-system`**.
 
 ---
 
@@ -107,6 +117,55 @@ easy-burger/
 
 ---
 
+## Un ticket = un crédit, jamais deux
+
+C'est une garantie de la **base de données**, pas du code applicatif :
+
+```sql
+create unique index loyalty_unique_source_ref
+  on public.loyalty_transactions (source, source_ref)
+  where source_ref is not null;
+```
+
+Que le crédit vienne d'une commande de l'app, d'un ticket de caisse saisi au
+comptoir ou d'un code de sac Glovo, une seconde tentative sur la même
+référence est rejetée par Postgres. Deux caissiers qui saisissent le même
+ticket au même instant : le second reçoit une erreur, pas un doublon.
+
+Les références sont normalisées avant contrôle (`A-1042`, `a 1042` et `A1042`
+sont le même ticket), sinon l'unicité se contournerait avec un espace.
+
+Les ajustements manuels ont `source_ref` nul et restent donc répétables :
+c'est leur raison d'être.
+
+## Le superadmin ne dépend d'aucun système externe
+
+Quatre rôles hiérarchisés — `cashier`, `manager`, `admin`, `superadmin` — et
+une fonction `adjust_points` réservée au superadmin : motif obligatoire, solde
+négatif refusé, écriture dans un journal d'audit que personne ne peut modifier
+depuis l'application.
+
+Quoi qu'il arrive à la caisse, à Glovo ou au réseau, le patron reprend la main
+sur le solde d'un client depuis `/admin/clients`.
+
+Le premier superadmin se crée à la main, une seule fois : la procédure est en
+commentaire à la fin de `supabase/migrations/001_staff.sql`. Il n'existe aucun
+chemin applicatif pour le créer — ce serait une porte ouverte.
+
+## Écrans
+
+| Route | Qui | Quoi |
+|---|---|---|
+| `/` | tout le monde | menu, catégories collantes |
+| `/p/[slug]` | tout le monde | produit, options, ajout au panier |
+| `/panier` | tout le monde | panier persistant |
+| `/commande` | tout le monde | mode, téléphone, adresse, paiement espèces |
+| `/suivi/[token]` | porteur du lien | suivi en quatre états |
+| `/admin` | caissier + | file du jour, changement de statut |
+| `/admin/clients` | admin + | recherche par téléphone, fiche 360 |
+| `/staff` | caissier + | crédit au comptoir par numéro de ticket |
+| `/design-system` | — | référence visuelle, non indexée |
+
 ## Trois règles qui tiennent tout le reste
 
 **1. Aucune règle métier en dur.** Tout montant, seuil, ratio ou délai vit dans
@@ -114,6 +173,11 @@ la table `settings` et se modifie depuis le back-office. `SETTING_DEFAULTS` dans
 `lib/settings.ts` n'est pas la règle : c'est le filet quand la base n'est pas
 branchée. La table est créée par la toute première migration, avant le premier
 calcul — sinon la règle ne tient pas.
+
+**1 bis. Le client ne calcule aucun montant.** `place_order` est le seul
+chemin d'écriture d'une commande. Le navigateur n'envoie que des identifiants
+de produits, des identifiants d'options et des quantités ; chaque prix est relu
+en base. Un panier trafiqué dans le stockage local ne change aucun total.
 
 **2. L'argent est en centimes entiers.** Jamais un flottant, ni en base, ni en
 mémoire. `lib/money.ts` est le seul endroit qui formate un montant, et
@@ -130,6 +194,20 @@ Corollaire de design : le rayon `14px` est réservé au sticker de récompense.
 Rien d'autre dans l'interface ne l'a. C'est ce qui lui donne sa force.
 
 ---
+
+## Tests
+
+```bash
+./supabase/tests/run.sh   # migrations + 44 vérifications SQL sur un Postgres jetable
+```
+
+Vérifie ce qui ne doit jamais casser : le double crédit sous toutes ses formes,
+le recalcul des prix, le plafond par caissier, le gel du rôle superadmin, le
+compteur de commandes qui ne doit pas gonfler à chaque repassage en
+« terminée ».
+
+Pour faire tourner l'app entière contre une vraie base, sans Docker ni projet
+Supabase : voir `e2e/README.md`.
 
 ## Service worker
 
