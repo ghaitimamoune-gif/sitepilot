@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Easy Burger — tokens de marque (§4.1)
+   Valeurs relevées dans le fichier de marque officiel. Ne pas dériver.
+   ========================================================================== */
+:root {
+  --eb-orange: #ff421d;
+  --eb-black: #111111;
+  --eb-white: #ffffff;
+  --eb-cream: #f2ede4;
+  --eb-grey: #6b6b6b;
+  --eb-grey-line: #e4e0d8;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    background-color: var(--eb-white);
+    color: var(--eb-black);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-size: 0.9375rem; /* 15 */
+    line-height: 1.5;
+    /* Mobile-first strict : jamais de scroll horizontal. */
+    overflow-x: hidden;
+  }
+
+  /* §4.2 — les titres display sont en capitales, très serrés. */
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), Impact, sans-serif;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    line-height: 0.94;
+    font-weight: 400;
+  }
+
+  /* Le focus doit rester visible : c'est une app qu'on utilise debout,
+     au comptoir, sur un écran sale. */
+  :focus-visible {
+    outline: 2px solid var(--eb-orange);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--eb-orange);
+    color: var(--eb-white);
+  }
+}
+
+@layer components {
+  /* Libellé utilitaire (§4.2) : Archivo capitales 11px, très espacé. */
+  .eb-eyebrow {
+    font-family: var(--font-util), system-ui, sans-serif;
+    font-size: 0.6875rem;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* Les prix ne sont JAMAIS en display, et toujours en chiffres tabulaires
+     pour que les colonnes s'alignent (§4.2). */
+  .eb-price {
+    font-family: var(--font-sans), system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+}
+
+@layer utilities {
+  /* Safe areas iOS — l'app est installée en plein écran. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  /* Barre de catégories collante, sans ascenseur visible. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Un utilisateur qui a demandé moins d'animation en obtient zéro. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
