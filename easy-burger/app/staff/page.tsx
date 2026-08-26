@@ -1,6 +1,7 @@
 import { getStaffUser } from '@/lib/staff'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { CreditTicketForm } from '@/components/admin/CreditTicketForm'
+import { ConsumeCodeForm } from '@/components/admin/ConsumeCodeForm'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 
 export const dynamic = 'force-dynamic'
@@ -34,7 +35,15 @@ export default async function StaffPage() {
 
       <CreditTicketForm />
 
-      <p className="mt-8 border-t border-eb-line pt-4">
+      <section className="mt-10 border-t border-eb-line pt-6">
+        <h2 className="mb-1 text-display-m">Valider une récompense</h2>
+        <p className="mb-5 text-body-s text-eb-grey">
+          Le client montre un code à 6 chiffres sur son téléphone.
+        </p>
+        <ConsumeCodeForm />
+      </section>
+
+      <p className="mt-10 border-t border-eb-line pt-4">
         <Eyebrow className="text-eb-grey">connecté · {staff.name}</Eyebrow>
       </p>
     </>

@@ -5,28 +5,13 @@ import { getSetting } from '@/lib/settings'
 import { EasyPattern } from '@/components/brand/EasyPattern'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { Price } from '@/components/ui/Price'
-import { RewardSticker } from '@/components/ui/RewardSticker'
 import { formatPhone } from '@/lib/phone'
+import { getActiveRedemptions, getRewards, rewardTitle } from '@/lib/rewards'
+import { RewardShop } from '@/components/loyalty/RewardShop'
+import Link from 'next/link'
 
 export const metadata: Metadata = { title: 'Fidélité' }
 export const dynamic = 'force-dynamic'
-
-/**
- * Boutique de récompenses — §6.2.
- *
- * Les valeurs vivront en base (table `rewards`) en Phase 3. Ici elles ne
- * servent qu'à montrer la progression : rien n'est encore échangeable, et
- * l'écran le dit.
- */
-const REWARDS = [
-  { title: 'Sauce maison', points: 120 },
-  { title: 'Soda', points: 200 },
-  { title: 'Frites maison', points: 250 },
-  { title: 'Beignets nutella', points: 400 },
-  { title: 'Milkshake', points: 450 },
-  { title: 'Cheeseburger', points: 600 },
-  { title: 'Double cheese', points: 750 },
-]
 
 const SOURCE_LABEL: Record<string, string> = {
   app_order: 'Commande',
@@ -44,14 +29,16 @@ export default async function LoyaltyPage() {
   const customer = await getCurrentCustomer()
   if (!customer) redirect('/connexion?suite=%2Ffidelite')
 
-  const [ledger, rate] = await Promise.all([
+  const [ledger, rate, rewards, active] = await Promise.all([
     getMyLedger(),
     getSetting<number>('redemption_rate'),
+    getRewards(),
+    getActiveRedemptions(),
   ])
 
   const balance = customer.points_balance
   const expiry = nextExpiry(ledger)
-  const next = REWARDS.find((r) => r.points > balance)
+  const next = rewards.find((r) => r.points_cost > balance)
   const worthCents = Math.floor(balance / (rate ?? 10)) * 100
 
   return (
@@ -76,20 +63,20 @@ export default async function LoyaltyPage() {
                   prochaine récompense · {next.title.toLowerCase()}
                 </Eyebrow>
                 <Eyebrow className="text-eb-orange">
-                  encore {next.points - balance}
+                  encore {next.points_cost - balance}
                 </Eyebrow>
               </div>
               <div
                 role="progressbar"
                 aria-valuenow={balance}
                 aria-valuemin={0}
-                aria-valuemax={next.points}
+                aria-valuemax={next.points_cost}
                 aria-label={`Progression vers ${next.title}`}
                 className="mt-2 h-1.5 w-full bg-eb-grey/40"
               >
                 <div
                   className="h-full bg-eb-orange"
-                  style={{ width: `${Math.min(100, (balance / next.points) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (balance / next.points_cost) * 100)}%` }}
                 />
               </div>
             </div>
@@ -101,6 +88,33 @@ export default async function LoyaltyPage() {
         </div>
       </section>
 
+      {/* ------------------------------------------------ codes en cours */}
+      {active.length > 0 && (
+        <section className="px-4 pt-6">
+          <h2 className="mb-3 text-display-m">À utiliser au comptoir</h2>
+          <ul className="flex flex-col gap-2">
+            {active.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/code/${r.id}`}
+                  className="flex items-center justify-between rounded-sticker bg-eb-orange px-4 py-3 text-eb-white"
+                >
+                  <span>
+                    <Eyebrow>{rewardTitle(r)}</Eyebrow>
+                    <span className="eb-price block font-display text-display-m leading-none">
+                      {r.code.slice(0, 3)} {r.code.slice(3)}
+                    </span>
+                  </span>
+                  <Eyebrow>
+                    {r.points_spent === 0 ? 'offert' : `${r.points_spent} points`}
+                  </Eyebrow>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* -------------------------------------------------- récompenses */}
       <section className="px-4 pt-8">
         <h2 className="text-display-l">Récompenses</h2>
@@ -109,25 +123,7 @@ export default async function LoyaltyPage() {
           récompense. Rien d’autre à retenir.
         </p>
 
-        {/* §9 — grille photo : celles à portée en couleur, les autres en gris
-            avec les points manquants. Deux colonnes sur téléphone, sinon la
-            boutique s'étire sur trois écrans de haut. */}
-        <div className="mt-5 grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3">
-          {REWARDS.map((r) => (
-            <RewardSticker
-              key={r.title}
-              title={r.title}
-              pointsCost={r.points}
-              balance={balance}
-              state={balance >= r.points ? 'available' : 'locked'}
-            />
-          ))}
-        </div>
-
-        <p className="mt-6 bg-eb-cream px-4 py-3 text-body-s text-eb-grey">
-          L’échange arrive très bientôt. Tes points, eux, sont déjà comptés —
-          rien ne se perd.
-        </p>
+        <RewardShop rewards={rewards} balance={balance} />
       </section>
 
       {/* --------------------------------------------------- expiration */}
