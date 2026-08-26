@@ -55,6 +55,7 @@ export type Category = {
 export type OrderRow = {
   id: string
   order_number: string | null
+  public_token?: string
   status: OrderStatus
   mode: OrderMode
   channel: OrderChannel
@@ -74,6 +75,9 @@ export type CustomerRow = {
   phone: string
   first_name: string | null
   last_name: string | null
+  email?: string | null
+  birthdate?: string | null
+  marketing_consent?: boolean
   points_balance: number
   lifetime_spend: number
   orders_count: number
@@ -90,6 +94,7 @@ export type LoyaltyRow = {
   amount_cents: number | null
   note: string | null
   created_at: string
+  expires_at?: string | null
   /**
    * Jointure facultative vers la commande d'origine.
    * PostgREST renvoie un objet pour une relation « plusieurs vers un », mais
@@ -111,5 +116,7 @@ export type TrackedOrder = {
   contact_name: string | null
   address_snapshot: string | null
   note: string | null
+  /** §8 — le prénom est demandé après la première commande, pas avant. */
+  needs_name: boolean
   items: { name: string; qty: number; line_total_cents: number; options: string[] }[]
 }

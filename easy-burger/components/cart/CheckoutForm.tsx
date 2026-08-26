@@ -9,17 +9,26 @@ import { Field } from '@/components/ui/Field'
 import { Price } from '@/components/ui/Price'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { formatMAD } from '@/lib/money'
+import { formatPhone } from '@/lib/phone'
 import { cn } from '@/lib/cn'
 
 type Mode = 'delivery' | 'pickup'
+
+type SavedAddress = {
+  id: string
+  label: string | null
+  street: string
+  details: string | null
+  isDefault: boolean
+}
 
 /**
  * Checkout, paiement en espèces (Phase 1).
  *
  * §8 : on ne demande le téléphone qu'ici, au moment de valider — le menu
- * est consultable sans compte. L'OTP arrive en Phase 2 ; en attendant, le
- * numéro sert déjà à créer le compte client et à rattacher la commande,
- * donc rien ne sera à reconstruire.
+ * est consultable sans compte. Un client déjà identifié ne le ressaisit pas,
+ * et le prénom n'est plus demandé ici : il l'est sur l'écran de suivi, après
+ * la première commande réussie.
  *
  * §12 : le paiement en espèces est le premier adaptateur à exister, parce
  * que ce sera la part majoritaire des commandes au démarrage.
@@ -27,17 +36,29 @@ type Mode = 'delivery' | 'pickup'
 export function CheckoutForm({
   deliveryFeeCents,
   freeDeliveryThresholdCents,
+  knownPhone,
+  knownName,
+  addresses,
 }: {
   deliveryFeeCents: number
   freeDeliveryThresholdCents: number
+  knownPhone: string | null
+  knownName: string | null
+  addresses: SavedAddress[]
 }) {
   const router = useRouter()
   const { lines, subtotalCents, clear, ready } = useCart()
 
   const [mode, setMode] = useState<Mode>('delivery')
-  const [phone, setPhone] = useState('')
-  const [name, setName] = useState('')
-  const [address, setAddress] = useState('')
+  const [phone, setPhone] = useState(knownPhone ?? '')
+  const [address, setAddress] = useState(() => {
+    const preferred = addresses.find((a) => a.isDefault) ?? addresses[0]
+    return preferred ? fullAddress(preferred) : ''
+  })
+  const [pickedAddress, setPickedAddress] = useState<string | null>(() => {
+    const preferred = addresses.find((a) => a.isDefault) ?? addresses[0]
+    return preferred?.id ?? null
+  })
   const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
@@ -72,7 +93,7 @@ export function CheckoutForm({
       const result = await placeOrder({
         mode,
         phone,
-        name,
+        name: knownName ?? '',
         address: mode === 'delivery' ? address : undefined,
         note,
         items: cartToPayloadItems(lines),
@@ -116,36 +137,83 @@ export function CheckoutForm({
 
       {/* -------------------------------------------------------- identité */}
       <div className="flex flex-col gap-5">
-        <Field
-          label="téléphone"
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          required
-          placeholder="06 12 34 56 78"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          hint="C’est ce numéro qui portera tes points."
-        />
-
-        <Field
-          label="prénom"
-          autoComplete="given-name"
-          required
-          placeholder="Yasmine"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        {knownPhone ? (
+          <div className="flex items-center justify-between border border-eb-line px-4 py-3">
+            <div>
+              <Eyebrow className="text-eb-grey">téléphone</Eyebrow>
+              <p className="eb-price text-body-l">{formatPhone(knownPhone)}</p>
+            </div>
+            <Eyebrow className="text-eb-orange">tes points y sont</Eyebrow>
+          </div>
+        ) : (
+          <Field
+            label="téléphone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            required
+            placeholder="06 12 34 56 78"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            hint="C’est ce numéro qui portera tes points. On te demandera ton prénom après."
+          />
+        )}
 
         {mode === 'delivery' && (
-          <Field
-            label="adresse de livraison"
-            required
-            placeholder="Rue, immeuble, étage, quartier"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            hint="La course est assurée par Glovo."
-          />
+          <>
+            {addresses.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <Eyebrow className="text-eb-grey">adresses enregistrées</Eyebrow>
+                <div className="flex flex-wrap gap-2">
+                  {addresses.map((a) => (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => {
+                        setPickedAddress(a.id)
+                        setAddress(fullAddress(a))
+                      }}
+                      className={cn(
+                        'border px-3 py-2 text-left text-body-s',
+                        pickedAddress === a.id
+                          ? 'border-eb-black bg-eb-black text-eb-white'
+                          : 'border-eb-line text-eb-black',
+                      )}
+                    >
+                      {a.label ?? a.street}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPickedAddress(null)
+                      setAddress('')
+                    }}
+                    className={cn(
+                      'border px-3 py-2 text-body-s',
+                      pickedAddress === null
+                        ? 'border-eb-black bg-eb-black text-eb-white'
+                        : 'border-eb-line text-eb-black',
+                    )}
+                  >
+                    Autre
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <Field
+              label="adresse de livraison"
+              required
+              placeholder="Rue, immeuble, étage, quartier"
+              value={address}
+              onChange={(e) => {
+                setPickedAddress(null)
+                setAddress(e.target.value)
+              }}
+              hint="La course est assurée par Glovo."
+            />
+          </>
         )}
 
         <Field
@@ -195,6 +263,10 @@ export function CheckoutForm({
       </p>
     </form>
   )
+}
+
+function fullAddress(a: SavedAddress): string {
+  return [a.street, a.details].filter(Boolean).join(' — ')
 }
 
 function ModeButton({

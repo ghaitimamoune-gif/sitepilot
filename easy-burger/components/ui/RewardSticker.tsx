@@ -38,7 +38,7 @@ export function RewardSticker({
   return (
     <div
       className={cn(
-        'relative inline-flex w-full max-w-[240px] flex-col gap-1 rounded-sticker px-4 py-3',
+        'relative flex w-full flex-col gap-1 rounded-sticker px-3.5 py-3',
         '-rotate-2',
         state === 'available' && 'bg-eb-orange text-eb-white',
         state === 'locked' && 'bg-eb-cream text-eb-grey',
@@ -50,7 +50,9 @@ export function RewardSticker({
         {state === 'used' ? 'utilisée' : `${pointsCost} points`}
       </Eyebrow>
 
-      <span className="font-display text-display-m uppercase">{title}</span>
+      <span className="font-display text-body-l uppercase leading-tight sm:text-display-m">
+        {title}
+      </span>
 
       {missing !== null && (
         <span className="text-body-s">

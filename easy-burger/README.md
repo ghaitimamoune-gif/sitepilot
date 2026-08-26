@@ -13,7 +13,7 @@ marketplace Glovo vers notre canal direct, et savoir enfin qui ils sont.
 |---|---|---|
 | **0** | Projet, tokens de design, PWA, composants de base | ✅ terminée |
 | **1** | Menu, panier, commande en espèces, file admin | ✅ terminée |
-| 2 | Auth téléphone + OTP, profil, adresses | à venir |
+| **2** | Auth téléphone + OTP, fidélité, profil, adresses | ✅ terminée |
 | 3 | Boutique de récompenses, codes à 6 chiffres | à venir |
 | 4 | Back-office complet (menu, réglages, tableau de bord) | à venir |
 | 5 | Codes Glovo, import et rapprochement des tickets Lacaisse | à venir |
@@ -23,13 +23,10 @@ marketplace Glovo vers notre canal direct, et savoir enfin qui ils sont.
 **À la fin de la Phase 1, on peut prendre des commandes.** Le parcours va du
 menu au suivi, la file de commandes tourne, et les points tombent tout seuls.
 
-Deux morceaux ont été avancés sur demande, parce qu'ils changent la forme du
-socle et coûtent cher à rétro-ajouter :
-
-- **Le ledger de points et son unicité par source** (normalement Phase 2) —
-  voir « Un ticket = un crédit » plus bas.
-- **Les rôles du personnel et le superadmin** (normalement Phase 4) — pour
-  gérer les points d'un client à la main, sans dépendre d'une API de caisse.
+Le client s'identifie par son téléphone, voit ses points et retrouve ses
+adresses. Les rôles du personnel et le superadmin ont été avancés depuis la
+Phase 4, sur demande : gérer les points d'un client à la main ne doit dépendre
+d'aucune API de caisse.
 
 Le livrable de la Phase 0 reste visible sur **`/design-system`**.
 
@@ -160,11 +157,49 @@ chemin applicatif pour le créer — ce serait une porte ouverte.
 | `/p/[slug]` | tout le monde | produit, options, ajout au panier |
 | `/panier` | tout le monde | panier persistant |
 | `/commande` | tout le monde | mode, téléphone, adresse, paiement espèces |
-| `/suivi/[token]` | porteur du lien | suivi en quatre états |
+| `/suivi/[token]` | porteur du lien | suivi en quatre états, prénom demandé après |
+| `/connexion` | tout le monde | téléphone + code SMS |
+| `/fidelite` | client connecté | solde, progression, récompenses, historique |
+| `/compte` | client connecté | profil, adresses, commandes, suppression |
 | `/admin` | caissier + | file du jour, changement de statut |
 | `/admin/clients` | admin + | recherche par téléphone, fiche 360 |
 | `/staff` | caissier + | crédit au comptoir par numéro de ticket |
 | `/design-system` | — | référence visuelle, non indexée |
+
+## L'identité tient au numéro, pas au compte
+
+Le téléphone est la clé (§2). Une fiche client créée au comptoir, puis
+retrouvée par le client quand il s'inscrit, reste **la même fiche** : ses
+points le suivent. Un nouveau téléphone, un nouveau compte Auth, le même
+numéro — la fiche bascule sur le compte qui vient de prouver le numéro.
+
+Le numéro utilisé pour le rattachement vient du **jeton**, jamais du
+navigateur : personne ne peut se rattacher à la fiche de quelqu'un d'autre.
+
+La session dure un an. Chaque SMS coûte de l'argent et chaque OTP perd des
+commandes : à régler dans le projet Supabase (Authentication → Sessions,
+« JWT expiry » et durée du refresh token).
+
+## Ce qu'un client authentifié peut écrire
+
+RLS filtre les **lignes**, pas les **colonnes**. Une policy « le client
+modifie sa propre fiche » laisse donc passer
+`update customers set points_balance = 999999`. Tant qu'aucun client n'avait
+de session, c'était inatteignable ; l'auth par OTP le rendait exploitable.
+
+La migration `007_auth.sql` retire le droit d'update global et ne rend que
+les champs de profil :
+
+```sql
+revoke update on public.customers from authenticated;
+grant update (first_name, last_name, email, birthdate,
+              marketing_consent, consent_at)
+  on public.customers to authenticated;
+```
+
+Même logique, en défense en profondeur, sur le ledger et l'insertion de
+commandes : les droits sont retirés, de sorte qu'une policy permissive
+ajoutée par distraction plus tard ne rouvre rien.
 
 ## Trois règles qui tiennent tout le reste
 
@@ -198,13 +233,13 @@ Rien d'autre dans l'interface ne l'a. C'est ce qui lui donne sa force.
 ## Tests
 
 ```bash
-./supabase/tests/run.sh   # migrations + 44 vérifications SQL sur un Postgres jetable
+./supabase/tests/run.sh   # migrations + 63 vérifications SQL sur un Postgres jetable
 ```
 
 Vérifie ce qui ne doit jamais casser : le double crédit sous toutes ses formes,
 le recalcul des prix, le plafond par caissier, le gel du rôle superadmin, le
 compteur de commandes qui ne doit pas gonfler à chaque repassage en
-« terminée ».
+« terminée », et ce qu'un client authentifié n'a pas le droit d'écrire.
 
 Pour faire tourner l'app entière contre une vraie base, sans Docker ni projet
 Supabase : voir `e2e/README.md`.

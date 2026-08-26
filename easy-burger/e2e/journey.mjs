@@ -1,11 +1,15 @@
 import { chromium } from 'playwright'
 
-const BASE = process.env.BASE ?? 'http://127.0.0.1:3220'
+const BASE = process.env.BASE ?? 'http://127.0.0.1:3230'
 const b = await chromium.launch()
 const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 })
 const errs = []
 p.on('pageerror', (e) => errs.push(String(e)))
 p.on('console', (m) => m.type() === 'error' && errs.push(m.text()))
+
+// Numéro tiré au hasard : le prénom n'est demandé qu'à un client qui n'en a
+// pas encore, donc rejouer avec un numéro déjà nommé ne prouverait rien.
+const PHONE = '06 55 ' + String(Math.floor(Math.random() * 1e6)).padStart(6, '0').replace(/(\d{2})(?=\d)/g, '$1 ').trim()
 
 const step = (n, ok, extra = '') =>
   console.log(`${ok ? '  OK  ' : 'ÉCHEC '} ${n}${extra ? ' → ' + extra : ''}`)
@@ -53,9 +57,12 @@ await p.waitForURL('**/commande')
 // 4. Checkout
 step('checkout ouvert', p.url().endsWith('/commande'))
 
+// §8 : le prénom n'est plus demandé ici, il l'est après la commande.
+step('le checkout ne demande pas le prénom',
+  (await p.getByLabel('prénom').count()) === 0)
+
 // Refus attendu : téléphone illisible
 await p.getByLabel('téléphone').fill('abc')
-await p.getByLabel('prénom').fill('Yasmine')
 await p.getByLabel('adresse de livraison').fill('12 rue Test, Casablanca')
 await p.locator('button[type=submit]').click()
 const formAlert = p.locator('form [role=alert]')
@@ -65,7 +72,7 @@ step('téléphone illisible refusé par le serveur',
   /téléphone/i.test(alertText), alertText.trim())
 
 // Commande valide
-await p.getByLabel('téléphone').fill('06 12 34 56 78')
+await p.getByLabel('téléphone').fill(PHONE)
 await p.locator('button[type=submit]').click()
 await p.waitForURL('**/suivi/**', { timeout: 15000 })
 step('commande passée, redirection vers le suivi', p.url().includes('/suivi/'))
@@ -76,6 +83,14 @@ step('numéro de commande lisible', /EB-\d{6}-\d{3}/.test(body),
 // 75 + 15 = 90 l'unité × 2 = 180
 step('total recalculé par le serveur : 180 MAD', body.includes('180 MAD'))
 step('étape « Reçue » active', body.includes('Reçue'))
+
+// §8 — le prénom est demandé une fois la commande passée.
+step('le suivi demande le prénom', /comment on t’appelle/i.test(body))
+await p.getByLabel('prénom').fill('Yasmine')
+await p.locator('form button[type=submit]').click()
+await p.waitForTimeout(2000)
+step('prénom enregistré, la question disparaît',
+  !/comment on t’appelle/i.test(await p.textContent('body')))
 
 // Le panier est vidé après commande
 await p.goto(BASE + '/panier', { waitUntil: 'networkidle' })

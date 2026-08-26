@@ -53,6 +53,9 @@ const config: Config = {
       util: ['var(--font-util)', 'system-ui', 'sans-serif'],
     },
     extend: {
+      inset: {
+        tabbar: 'calc(60px + env(safe-area-inset-bottom))',
+      },
       spacing: {
         // Hauteur de zone tactile minimale (mobile-first strict, §3)
         touch: '44px',

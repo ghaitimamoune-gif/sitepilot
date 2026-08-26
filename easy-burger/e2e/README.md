@@ -11,7 +11,7 @@ et un compteur de commandes qui gonflait à chaque repassage en « terminée ».
 |---|---|
 | Postgres | Postgres 16 local, base jetable |
 | PostgREST | le vrai PostgREST, binaire statique |
-| GoTrue (auth) | un bouchon dans `supabase-proxy.mjs` |
+| GoTrue (auth) | un bouchon dans `supabase-proxy.mjs` — **code OTP fixe : 123456** |
 | `auth.uid()`, `auth.users` | `../supabase/tests/00_supabase_shim.sql` |
 
 Le proxy réécrit `/rest/v1/*` vers PostgREST et sert une session bidon sur
@@ -28,17 +28,23 @@ différence.
 ./up.sh                       # affiche les variables à mettre dans .env.local
 
 # 3. L'app
-cd .. && npm run build && npx next start -p 3220
+cd .. && npm run build && npx next start -p 3230
 
 # 4. Les parcours
-node e2e/journey.mjs          # menu → produit → panier → commande → suivi
-node e2e/ticket.mjs           # crédit au comptoir et refus du double crédit
+node e2e/journey.mjs          # invité : menu → panier → commande → prénom demandé après
+node e2e/loyalty.mjs          # client : OTP → fidélité → compte → checkout prérempli
+node e2e/ticket.mjs           # caisse : crédit par ticket, refus du double crédit
 ```
 
 `up.sh` télécharge PostgREST au premier lancement (~4 Mo).
 
-## Limite
+## Limites
 
-GoTrue n'est pas émulé : la **connexion** du personnel (`/admin/login`) ne
-peut pas être testée ici, seulement la session une fois établie. Le reste
-du back-office tourne pour de vrai, RLS et contrôles de rôle compris.
+Le bouchon GoTrue accepte **n'importe quel numéro avec le code `123456`**, et
+signe une session comme le ferait Supabase. Tout ce qui vient après — le
+rattachement de la fiche au numéro vérifié, RLS, les points — est réel.
+
+Ce qui n'est donc pas couvert ici : l'envoi réel du SMS, l'expiration du code,
+la limitation de débit, et la connexion du personnel par mot de passe
+(`/admin/login`). Le reste du back-office tourne pour de vrai, contrôles de
+rôle compris.

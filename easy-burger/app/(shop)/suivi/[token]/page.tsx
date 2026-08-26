@@ -6,6 +6,7 @@ import { Price } from '@/components/ui/Price'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { EasyPattern } from '@/components/brand/EasyPattern'
 import { OrderStatusSteps } from '@/components/order/OrderStatusSteps'
+import { AskName } from '@/components/order/AskName'
 
 export const metadata: Metadata = { title: 'Suivi de commande', robots: { index: false } }
 
@@ -47,6 +48,8 @@ export default async function TrackPage({
       {/* §9 : suivi volontairement simple. Pas de carte, pas de position
           coursier — c'est Glovo qui livre. */}
       <OrderStatusSteps status={order.status} mode={order.mode} />
+
+      {order.needs_name && <AskName token={token} />}
 
       <section className="mt-8 border-t border-eb-line pt-5">
         <h2 className="mb-3 text-display-m">Détail</h2>

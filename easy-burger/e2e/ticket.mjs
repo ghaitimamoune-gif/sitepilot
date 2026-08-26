@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { mkdirSync } from 'node:fs'
 import { sessionCookie } from './keys.mjs'
 
-const BASE = process.env.BASE ?? 'http://127.0.0.1:3220'
+const BASE = process.env.BASE ?? 'http://127.0.0.1:3230'
 const jwt = readFileSync(new URL('.bin/staff.jwt', import.meta.url), 'utf8').trim()
 
 const b = await chromium.launch()

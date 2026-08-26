@@ -44,6 +44,8 @@ for f in "$MIGRATIONS"/*.sql; do
 done
 
 echo "→ tests"
-"${PSQL[@]}" -f "$HERE/01_loyalty_and_orders.sql" 2>&1 \
-  | grep -oP '(NOTICE:  |ERROR:  |=====.*|--- .*).*' \
-  | sed 's/NOTICE:  //'
+for t in "$HERE"/0[1-9]_*.sql; do
+  "${PSQL[@]}" -f "$t" 2>&1 \
+    | grep -oP '(NOTICE:  |ERROR:  |=====.*|--- .*).*' \
+    | sed 's/NOTICE:  //'
+done

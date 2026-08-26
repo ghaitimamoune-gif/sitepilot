@@ -64,3 +64,23 @@ export async function placeOrder(input: PlaceOrderInput): Promise<PlaceOrderResu
     totalCents: result.total_cents,
   }
 }
+
+/**
+ * §8 — « Prénom demandé après la première commande réussie, pas avant. »
+ * Appelé depuis l'écran de suivi. Le jeton de la commande fait l'autorisation.
+ */
+export async function nameCustomer(
+  token: string,
+  name: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const supabase = await createClient()
+  if (!supabase) return { ok: false, error: 'La base n’est pas branchée.' }
+
+  const { error } = await supabase.rpc('name_customer_by_order_token', {
+    p_token: token,
+    p_name: name,
+  })
+
+  if (error) return { ok: false, error: error.message }
+  return { ok: true }
+}

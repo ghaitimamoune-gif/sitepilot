@@ -11,10 +11,10 @@ import crypto from 'node:crypto'
 export const SECRET =
   process.env.JWT_SECRET ?? 'un-secret-de-test-suffisamment-long-pour-postgrest-0123456789'
 
-export function mint(role, sub) {
+export function mint(role, sub, extra = {}) {
   const enc = (o) => Buffer.from(JSON.stringify(o)).toString('base64url')
   const head = enc({ alg: 'HS256', typ: 'JWT' })
-  const body = enc({ role, sub, iat: 1700000000, exp: 2000000000 })
+  const body = enc({ role, sub, iat: 1700000000, exp: 2000000000, ...extra })
   const sig = crypto.createHmac('sha256', SECRET).update(`${head}.${body}`).digest('base64url')
   return `${head}.${body}.${sig}`
 }

@@ -26,7 +26,8 @@ export function CartBar() {
   if (hidden) return null
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 border-t border-eb-line bg-eb-white px-4 pb-safe pt-3">
+    // Calée juste au-dessus de la barre d'onglets.
+    <div className="fixed inset-x-0 bottom-tabbar z-40 bg-eb-white px-4 pt-3 pb-3">
       <Link
         href="/panier"
         className="mx-auto flex h-14 max-w-3xl items-center justify-between rounded-button bg-eb-orange px-5 text-eb-white"
