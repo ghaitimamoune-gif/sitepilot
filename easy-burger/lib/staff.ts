@@ -1,5 +1,5 @@
 import { createClient } from './supabase/server'
-import { ROLE_LABELS, rankOf } from './roles'
+import { rankOf } from './roles'
 import type { StaffRole } from '@/types/db'
 
 export type StaffUser = {

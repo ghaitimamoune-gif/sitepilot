@@ -14,6 +14,7 @@ export type SettingKey =
   | 'cashier_daily_points_cap'
   | 'redemption_code_ttl_minutes'
   | 'ticket_claim_days'
+  | 'payment_provider'
 
 export type OrderChannel = 'app' | 'counter' | 'glovo'
 export type OrderMode = 'delivery' | 'pickup'
