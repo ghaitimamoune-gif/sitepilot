@@ -14,19 +14,26 @@ marketplace Glovo vers notre canal direct, et savoir enfin qui ils sont.
 | **0** | Projet, tokens de design, PWA, composants de base | ✅ terminée |
 | **1** | Menu, panier, commande en espèces, file admin | ✅ terminée |
 | **2** | Auth téléphone + OTP, fidélité, profil, adresses | ✅ terminée |
-| 3 | Boutique de récompenses, codes à 6 chiffres | à venir |
-| 4 | Back-office complet (menu, réglages, tableau de bord) | à venir |
-| 5 | Codes Glovo, import et rapprochement des tickets Lacaisse | à venir |
-| 6 | Paiement en ligne (Payzone puis CMI) | à venir |
-| 7 | Messages (SMS puis WhatsApp) | à venir |
+| **3** | Boutique de récompenses, codes à 6 chiffres, cadeaux, expiration | ✅ terminée |
+| **4** | Back-office complet (menu, réglages, bilan, audit, équipe) | ✅ terminée |
+| **5** | Codes de sac Glovo, import et rapprochement des tickets | ✅ terminée |
+| **6** | Abstraction de paiement — adaptateurs en attente des contrats | ⏳ voir plus bas |
+| **7** | Messages — adaptateur en attente du fournisseur SMS | ⏳ voir plus bas |
 
-**À la fin de la Phase 1, on peut prendre des commandes.** Le parcours va du
-menu au suivi, la file de commandes tourne, et les points tombent tout seuls.
+Le produit est fonctionnel de bout en bout : commander, payer en espèces,
+gagner des points sur les trois canaux, les échanger, et piloter le tout
+depuis le back-office.
 
-Le client s'identifie par son téléphone, voit ses points et retrouve ses
-adresses. Les rôles du personnel et le superadmin ont été avancés depuis la
-Phase 4, sur demande : gérer les points d'un client à la main ne doit dépendre
-d'aucune API de caisse.
+Deux choses attendent des décisions qui ne sont pas techniques :
+
+- **Le paiement en ligne.** L'interface `PaymentProvider` et ses trois
+  adaptateurs sont en place, `CashProvider` est complet. Payzone et CMI
+  lèvent une erreur nommant les variables manquantes. Les questions à poser
+  sont écrites dans les adaptateurs eux-mêmes.
+- **L'envoi des messages.** L'abstraction, les gabarits et la file
+  fonctionnent ; tant qu'aucun fournisseur SMS n'est choisi, un adaptateur de
+  journalisation prend le relais — rien ne part, mais la file se vide et le
+  contenu reste vérifiable.
 
 Le livrable de la Phase 0 reste visible sur **`/design-system`**.
 
@@ -164,6 +171,18 @@ chemin applicatif pour le créer — ce serait une porte ouverte.
 | `/admin` | caissier + | file du jour, changement de statut |
 | `/admin/clients` | admin + | recherche par téléphone, fiche 360 |
 | `/staff` | caissier + | crédit au comptoir par numéro de ticket |
+| `/sac` | tout le monde | code du sticker Glovo, sans compte |
+| `/ticket` | client connecté | réclamer un ticket oublié |
+| `/code/[id]` | client connecté | code de récompense, plein orange |
+| `/admin/menu` | responsable + | prix, photos, rupture en un clic |
+| `/admin/codes` | responsable + | lots de codes de sac, taux de scan |
+| `/admin/tickets` | responsable + | import des ventes et rapprochement |
+| `/admin/stats` | responsable + | CA, panier moyen, taux d'identification |
+| `/admin/fidelite` | admin + | paliers de la boutique |
+| `/admin/reglages` | admin + | toutes les règles métier |
+| `/admin/journal` | admin + | journal d'audit |
+| `/admin/equipe` | superadmin | rôles du personnel |
+| `/api/jobs` | planificateur | travaux périodiques, en POST authentifié |
 | `/design-system` | — | référence visuelle, non indexée |
 
 ## L'identité tient au numéro, pas au compte
@@ -233,16 +252,33 @@ Rien d'autre dans l'interface ne l'a. C'est ce qui lui donne sa force.
 ## Tests
 
 ```bash
-./supabase/tests/run.sh   # migrations + 63 vérifications SQL sur un Postgres jetable
+./supabase/tests/run.sh   # migrations + 144 vérifications SQL sur un Postgres jetable
 ```
 
 Vérifie ce qui ne doit jamais casser : le double crédit sous toutes ses formes,
 le recalcul des prix, le plafond par caissier, le gel du rôle superadmin, le
 compteur de commandes qui ne doit pas gonfler à chaque repassage en
-« terminée », et ce qu'un client authentifié n'a pas le droit d'écrire.
+« terminée », ce qu'un client authentifié n'a pas le droit d'écrire,
+l'expiration FIFO au point près, le rejeu d'un callback de paiement et le
+refus d'un jeton qui ressemble à un numéro de carte.
 
 Pour faire tourner l'app entière contre une vraie base, sans Docker ni projet
 Supabase : voir `e2e/README.md`.
+
+## Travaux périodiques
+
+```
+POST /api/jobs
+Authorization: Bearer <CRON_SECRET>
+```
+
+Une fois par jour, depuis n'importe quel planificateur. Exécute d'un coup :
+expiration des codes de récompense (les points reviennent au client),
+expiration des points en FIFO, cadeaux d'anniversaire, rapprochement des
+tickets réclamés, alertes à 30 jours, envoi de la file de messages.
+
+Chaque tâche est idempotente : on peut relancer à la main sans réfléchir
+quand un jour a sauté.
 
 ## Service worker
 
