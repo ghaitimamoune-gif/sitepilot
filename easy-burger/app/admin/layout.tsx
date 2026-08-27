@@ -49,6 +49,12 @@ export default async function AdminLayout({
             {isAtLeast(staff, 'admin') && (
               <AdminLink href="/admin/clients">Clients</AdminLink>
             )}
+            {isAtLeast(staff, 'manager') && (
+              <>
+                <AdminLink href="/admin/codes">Codes sac</AdminLink>
+                <AdminLink href="/admin/tickets">Tickets</AdminLink>
+              </>
+            )}
             <AdminLink href="/staff">Caisse</AdminLink>
           </nav>
         )}

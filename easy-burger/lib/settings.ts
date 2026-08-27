@@ -25,6 +25,8 @@ export const SETTING_DEFAULTS: Record<SettingKey, unknown> = {
   opening_hours: null,
   is_accepting_orders: true,
   cashier_daily_points_cap: 20000,
+  redemption_code_ttl_minutes: 15,
+  ticket_claim_days: 7,
 }
 
 type SettingsMap = Record<string, unknown>
