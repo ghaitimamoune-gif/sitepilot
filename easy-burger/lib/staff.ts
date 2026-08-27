@@ -1,17 +1,11 @@
 import { createClient } from './supabase/server'
+import { ROLE_LABELS, rankOf } from './roles'
 import type { StaffRole } from '@/types/db'
 
 export type StaffUser = {
   id: string
   name: string
   role: StaffRole
-}
-
-const RANK: Record<StaffRole, number> = {
-  cashier: 10,
-  manager: 20,
-  admin: 30,
-  superadmin: 40,
 }
 
 /**
@@ -42,12 +36,8 @@ export async function getStaffUser(): Promise<StaffUser | null> {
 
 export function isAtLeast(staff: StaffUser | null, required: StaffRole): boolean {
   if (!staff) return false
-  return RANK[staff.role] >= RANK[required]
+  return rankOf(staff.role) >= rankOf(required)
 }
 
-export const ROLE_LABELS: Record<StaffRole, string> = {
-  cashier: 'Caissier',
-  manager: 'Responsable',
-  admin: 'Administrateur',
-  superadmin: 'Superadmin',
-}
+// Réexporté pour que les écrans serveur n'aient qu'un import à faire.
+export { ROLE_LABELS } from './roles'

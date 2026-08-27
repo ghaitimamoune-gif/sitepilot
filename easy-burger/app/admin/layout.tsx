@@ -44,16 +44,28 @@ export default async function AdminLayout({
         </div>
 
         {staff && (
-          <nav className="mx-auto flex max-w-5xl gap-1 px-3 pb-2">
+          <nav className="no-scrollbar mx-auto flex max-w-5xl gap-1 overflow-x-auto px-3 pb-2">
             <AdminLink href="/admin">Commandes</AdminLink>
             {isAtLeast(staff, 'admin') && (
               <AdminLink href="/admin/clients">Clients</AdminLink>
             )}
             {isAtLeast(staff, 'manager') && (
               <>
+                <AdminLink href="/admin/menu">Menu</AdminLink>
                 <AdminLink href="/admin/codes">Codes sac</AdminLink>
                 <AdminLink href="/admin/tickets">Tickets</AdminLink>
+                <AdminLink href="/admin/stats">Bilan</AdminLink>
               </>
+            )}
+            {isAtLeast(staff, 'admin') && (
+              <>
+                <AdminLink href="/admin/fidelite">Fidélité</AdminLink>
+                <AdminLink href="/admin/reglages">Réglages</AdminLink>
+                <AdminLink href="/admin/journal">Journal</AdminLink>
+              </>
+            )}
+            {isAtLeast(staff, 'superadmin') && (
+              <AdminLink href="/admin/equipe">Équipe</AdminLink>
             )}
             <AdminLink href="/staff">Caisse</AdminLink>
           </nav>
@@ -71,7 +83,7 @@ function AdminLink({ href, children }: { href: string; children: React.ReactNode
   return (
     <Link
       href={href}
-      className="eb-eyebrow inline-flex h-9 items-center px-3 font-util text-eb-cream"
+      className="eb-eyebrow inline-flex h-9 shrink-0 items-center whitespace-nowrap px-3 font-util text-eb-cream"
     >
       {children}
     </Link>
