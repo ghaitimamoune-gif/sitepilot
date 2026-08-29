@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import type { Observation, Reserve, Task, Intervenant, Checklist } from '@/types'
 
@@ -18,8 +18,25 @@ interface ProjectData {
   currentUser: { id: string; email: string; name: string; role: string }
 }
 
-const ProjectCtx = createContext<{ data: ProjectData; projectId: string; refresh: () => void } | null>(null)
-export const useProject = () => useContext(ProjectCtx)!
+interface ProjectCtxValue {
+  data: ProjectData
+  projectId: string
+  refresh: () => void
+  showToast: (msg: string) => void
+}
+
+const ProjectCtx = createContext<ProjectCtxValue | null>(null)
+
+export function useProject(): ProjectCtxValue {
+  const ctx = useContext(ProjectCtx)
+  if (!ctx) {
+    throw new Error(
+      'useProject() doit être appelé dans un <ProjectShell>. ' +
+        'Vérifiez que la page se trouve sous app/project/[projectId]/.'
+    )
+  }
+  return ctx
+}
 
 // ============ NAV ============
 const NAV = [
@@ -41,18 +58,23 @@ function Avt({ name, color, size = 28 }: { name: string; color?: string; size?: 
 }
 
 // ============ SHELL ============
-export function ProjectShell({ data: initialData, projectId, children }: { data: ProjectData; projectId: string; children: React.ReactNode }) {
-  const [data] = useState(initialData)
+export function ProjectShell({ data, projectId, children }: { data: ProjectData; projectId: string; children: React.ReactNode }) {
+  // `data` est lu directement depuis les props : le placer dans un useState
+  // figeait le premier rendu, si bien qu'un router.refresh() rechargeait bien
+  // les données côté serveur sans que l'interface ne les reflète jamais
+  // (tâche créée => invisible jusqu'au rechargement complet de la page).
   const [toast, setToast] = useState<string | null>(null)
   const router = useRouter()
   const pathname = usePathname()
 
-  function refresh() { router.refresh() }
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 2800)
+    return () => clearTimeout(t)
+  }, [toast])
 
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(null), 2800)
-  }
+  const refresh = useCallback(() => { router.refresh() }, [router])
+  const showToast = useCallback((msg: string) => { setToast(msg) }, [])
 
   const currentPage = pathname.split('/').pop() || 'dashboard'
   const unread = data.notifications.filter(n => !n.is_read).length
@@ -69,7 +91,7 @@ export function ProjectShell({ data: initialData, projectId, children }: { data:
   }
 
   return (
-    <ProjectCtx.Provider value={{ data, projectId, refresh }}>
+    <ProjectCtx.Provider value={{ data, projectId, refresh, showToast }}>
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)' }}>
         {/* SIDEBAR */}
         <div style={{ width: 200, minWidth: 200, background: 'var(--bg2)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column' }}>

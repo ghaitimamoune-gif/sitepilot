@@ -23,7 +23,7 @@
 
 ### Étape 2 — Variables d'environnement
 
-Copier `.env.local.example` → `.env.local` et remplir :
+Copier `.env.example` → `.env.local` et remplir :
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
@@ -163,6 +163,45 @@ La prise de photo utilise `capture="environment"` pour ouvrir directement la cam
 Toutes les tables sont protégées par Row Level Security (RLS) Supabase.  
 Un utilisateur ne voit que les projets dont il est membre.  
 Les fichiers dans le storage sont accessibles publiquement (liens signés à implémenter pour usage privé).
+
+---
+
+## 🩺 Dépannage — « l'application ne répond plus »
+
+### Toutes les pages renvoient une erreur 500 (page de connexion comprise)
+
+Cause quasi certaine : les variables Supabase sont absentes du déploiement.
+
+Le middleware s'exécute sur **toutes** les requêtes. S'il ne peut pas créer de
+client Supabase, l'application entière devient injoignable. Depuis le correctif,
+ce cas n'entraîne plus d'erreur 500 : un écran **CONFIGURATION REQUISE** indique
+précisément les variables manquantes.
+
+Vérifier dans l'ordre :
+
+1. Netlify → Site settings → Environment variables :
+   `NEXT_PUBLIC_SUPABASE_URL` et `NEXT_PUBLIC_SUPABASE_ANON_KEY` sont-elles présentes ?
+2. **Relancer un déploiement.** Les variables `NEXT_PUBLIC_*` sont intégrées au
+   bundle *au moment du build*. Les ajouter sans reconstruire ne change rien —
+   c'est la cause d'échec la plus fréquente.
+3. Supabase → le projet est-il en pause ? Un projet gratuit inactif est suspendu
+   automatiquement et doit être réactivé depuis le tableau de bord.
+4. La clé `anon` a-t-elle été régénérée ? Si oui, mettre à jour Netlify et redéployer.
+
+### Une tâche créée n'apparaît pas dans le tableau
+
+Corrigé. Le shell projet figeait les données au premier rendu : le serveur
+rechargeait bien les données, mais l'interface ne les reflétait jamais.
+Les erreurs Supabase (RLS, session expirée) sont désormais affichées à l'écran
+au lieu d'être ignorées silencieusement.
+
+### Vérifier avant de déployer
+
+```bash
+npm run build      # inclut la vérification des types
+```
+
+Le build échoue désormais en cas d'erreur de typage, au lieu de déployer du code cassé.
 
 ---
 

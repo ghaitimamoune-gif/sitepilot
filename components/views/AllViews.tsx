@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useProject } from '@/components/project/ProjectShell'
 import { OBS_STATUS_CONFIG, PRIORITY_CONFIG, PHASES, INTERVENANT_TYPES } from '@/types'
-import type { Priority, ObsStatus } from '@/types'
+import type { ObsHistory, Priority, ObsStatus } from '@/types'
 
 // ============ SHARED UTILS ============
 const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : '—'
@@ -467,7 +467,7 @@ export function ObservationsView() {
             </div>
             <div style={{ marginTop: 14 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text3)', fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: '1px', marginBottom: 9 }}>HISTORIQUE</div>
-              {(sel.history || []).map((h: { id?: string; action: string; by_name: string; created_at: string; note?: string }, i) => (
+              {(sel.history || []).map((h: ObsHistory, i: number) => (
                 <div key={i} style={{ display: 'flex', gap: 8, paddingBottom: 9 }}>
                   <div style={{ width: 14, height: 14, borderRadius: '50%', background: 'var(--bg4)', border: '1px solid var(--border)', flexShrink: 0 }} />
                   <div>
@@ -601,20 +601,47 @@ export function ReservesView() {
 
 // ============ TASKS VIEW ============
 export function TasksView() {
-  const { data, projectId } = useProject()
+  const { data, projectId, showToast } = useProject()
   const supabase = createClient()
   const router = useRouter()
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ title: '', priority: 'medium' as Priority, ivId: '', dueDate: '', desc: '' })
+  const [busy, setBusy] = useState(false)
+  const [pendingId, setPendingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
+  // Les erreurs Supabase (RLS, session expirée, réseau) étaient ignorées :
+  // le bouton ne produisait aucun effet visible et la tâche semblait perdue.
+  // Elles sont désormais remontées à l'utilisateur.
   async function create() {
-    if (!form.title.trim()) return
-    await supabase.from('tasks').insert({ project_id: projectId, title: form.title.trim(), priority: form.priority, status: 'pending', assignee_id: form.ivId || null, due_date: form.dueDate || null, description: form.desc || null, created_by: data.currentUser.id })
-    setShowCreate(false); setForm({ title: '', priority: 'medium', ivId: '', dueDate: '', desc: '' }); router.refresh()
+    if (!form.title.trim() || busy) return
+    setBusy(true); setError(null)
+    const { error: err } = await supabase.from('tasks').insert({
+      project_id: projectId,
+      title: form.title.trim(),
+      priority: form.priority,
+      status: 'pending',
+      assignee_id: form.ivId || null,
+      due_date: form.dueDate || null,
+      description: form.desc.trim() || null,
+      created_by: data.currentUser.id,
+    })
+    setBusy(false)
+    if (err) { setError(`Création impossible : ${err.message}`); return }
+    setShowCreate(false)
+    setForm({ title: '', priority: 'medium', ivId: '', dueDate: '', desc: '' })
+    showToast('Tâche créée')
+    router.refresh()
   }
 
   async function updateStatus(id: string, status: string) {
-    await supabase.from('tasks').update({ status }).eq('id', id); router.refresh()
+    if (pendingId) return
+    setPendingId(id); setError(null)
+    const { error: err } = await supabase.from('tasks').update({ status }).eq('id', id)
+    setPendingId(null)
+    if (err) { setError(`Mise à jour impossible : ${err.message}`); return }
+    showToast(status === 'done' ? 'Tâche terminée' : 'Tâche démarrée')
+    router.refresh()
   }
 
   const byStatus = { pending: data.tasks.filter(t => t.status === 'pending'), in_progress: data.tasks.filter(t => t.status === 'in_progress'), done: data.tasks.filter(t => t.status === 'done') }
@@ -639,10 +666,25 @@ export function TasksView() {
             </select>
             <input type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} style={inp()} />
           </div>
+          <textarea value={form.desc} onChange={e => setForm({ ...form, desc: e.target.value })} placeholder="Description (facultatif)..." rows={2} style={inp({ marginBottom: 9, resize: 'vertical' })} />
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={create} disabled={!form.title.trim()} style={{ padding: '8px 18px', background: form.title.trim() ? 'var(--blue)' : 'var(--bg4)', border: 'none', borderRadius: 7, color: form.title.trim() ? '#fff' : 'var(--text3)', fontSize: 11, fontWeight: 700, cursor: form.title.trim() ? 'pointer' : 'not-allowed', fontFamily: "'Barlow Condensed',sans-serif" }}>CRÉER</button>
+            <button onClick={create} disabled={!form.title.trim() || busy} style={{ padding: '8px 18px', background: form.title.trim() && !busy ? 'var(--blue)' : 'var(--bg4)', border: 'none', borderRadius: 7, color: form.title.trim() && !busy ? '#fff' : 'var(--text3)', fontSize: 11, fontWeight: 700, cursor: form.title.trim() && !busy ? 'pointer' : 'not-allowed', fontFamily: "'Barlow Condensed',sans-serif" }}>{busy ? 'CRÉATION...' : 'CRÉER'}</button>
             <button onClick={() => setShowCreate(false)} style={{ padding: '8px 14px', background: 'var(--bg4)', border: '1px solid var(--border)', borderRadius: 7, color: 'var(--text2)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Annuler</button>
           </div>
+        </div>
+      )}
+
+      {error && (
+        <div style={{ padding: '9px 12px', background: 'rgba(232,64,64,0.1)', border: '1px solid rgba(232,64,64,0.3)', borderRadius: 7, fontSize: 11, color: 'var(--red)', marginBottom: 12 }}>
+          {error}
+        </div>
+      )}
+
+      {data.tasks.length === 0 && !showCreate && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', border: '1px dashed var(--border)', borderRadius: 10, color: 'var(--text3)', marginBottom: 14 }}>
+          <div style={{ fontSize: 28, marginBottom: 10 }}>✓</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text2)', fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: '0.5px' }}>AUCUNE TÂCHE</div>
+          <div style={{ fontSize: 11, marginTop: 4 }}>Créez la première tâche du chantier.</div>
         </div>
       )}
 
@@ -671,8 +713,8 @@ export function TasksView() {
                     </div>
                   </div>
                   {task.status !== 'done' && (
-                    <button onClick={() => updateStatus(task.id, task.status === 'pending' ? 'in_progress' : 'done')} style={{ width: '100%', padding: '4px', background: task.status === 'pending' ? 'rgba(245,166,35,0.08)' : 'rgba(46,201,114,0.08)', border: `1px solid ${task.status === 'pending' ? 'rgba(245,166,35,0.25)' : 'rgba(46,201,114,0.25)'}`, borderRadius: 5, color: task.status === 'pending' ? 'var(--amber)' : 'var(--green)', fontSize: 9, cursor: 'pointer', fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, marginTop: 4 }}>
-                      {task.status === 'pending' ? 'DÉMARRER' : 'TERMINER'}
+                    <button onClick={() => updateStatus(task.id, task.status === 'pending' ? 'in_progress' : 'done')} disabled={pendingId === task.id} style={{ width: '100%', padding: '4px', background: task.status === 'pending' ? 'rgba(245,166,35,0.08)' : 'rgba(46,201,114,0.08)', border: `1px solid ${task.status === 'pending' ? 'rgba(245,166,35,0.25)' : 'rgba(46,201,114,0.25)'}`, borderRadius: 5, color: task.status === 'pending' ? 'var(--amber)' : 'var(--green)', fontSize: 9, cursor: pendingId === task.id ? 'wait' : 'pointer', opacity: pendingId === task.id ? 0.5 : 1, fontFamily: "'Barlow Condensed',sans-serif", fontWeight: 700, marginTop: 4 }}>
+                      {pendingId === task.id ? '...' : task.status === 'pending' ? 'DÉMARRER' : 'TERMINER'}
                     </button>
                   )}
                 </div>

@@ -1,5 +1,6 @@
 import { redirect, notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClientOrNull } from '@/lib/supabase/server'
+import { SetupNotice } from '@/components/system/SetupNotice'
 import { ProjectShell } from '@/components/project/ProjectShell'
 
 export default async function ProjectLayout({
@@ -10,7 +11,9 @@ export default async function ProjectLayout({
   params: Promise<{ projectId: string }>
 }) {
   const { projectId } = await params
-  const supabase = await createClient()
+  const supabase = await createClientOrNull()
+  if (!supabase) return <SetupNotice />
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 

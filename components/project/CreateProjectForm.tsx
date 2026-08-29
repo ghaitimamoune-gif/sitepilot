@@ -14,19 +14,36 @@ export function CreateProjectForm({ userId }: { userId: string }) {
   const [description, setDescription] = useState('')
   const [phase, setPhase] = useState('Gros œuvre')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function create() {
-    if (!name.trim()) return
+    if (!name.trim() || loading) return
     setLoading(true)
-    const { data: project, error } = await supabase
+    setError(null)
+
+    const { data: project, error: insertError } = await supabase
       .from('projects')
       .insert({ name: name.trim(), address: address.trim(), description: description.trim(), phase, owner_id: userId, progress: 0 })
       .select()
       .single()
 
-    if (error) { setLoading(false); return }
+    // L'erreur était avalée en silence : le bouton restait sans effet et
+    // l'utilisateur n'avait aucun moyen de savoir ce qui bloquait.
+    if (insertError || !project) {
+      setLoading(false)
+      setError(`Création du projet impossible : ${insertError?.message ?? 'réponse vide du serveur'}`)
+      return
+    }
 
-    await supabase.from('project_members').insert({ project_id: project.id, user_id: userId, role: 'admin' })
+    const { error: memberError } = await supabase
+      .from('project_members')
+      .insert({ project_id: project.id, user_id: userId, role: 'admin' })
+
+    if (memberError) {
+      setLoading(false)
+      setError(`Projet créé, mais l'ajout du membre a échoué : ${memberError.message}`)
+      return
+    }
 
     setOpen(false)
     setLoading(false)
@@ -48,7 +65,7 @@ export function CreateProjectForm({ userId }: { userId: string }) {
   )
 
   return (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--amber)40', borderRadius: 12, padding: 24, maxWidth: 500 }}>
+    <div style={{ background: 'var(--bg2)', border: '1px solid rgba(245,166,35,0.25)', borderRadius: 12, padding: 24, maxWidth: 500 }}>
       <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 20, fontFamily: "'Barlow Condensed',sans-serif", letterSpacing: '0.5px' }}>NOUVEAU PROJET</h2>
 
       <label style={lbl}>NOM DU PROJET *</label>
@@ -64,6 +81,12 @@ export function CreateProjectForm({ userId }: { userId: string }) {
       <select value={phase} onChange={e => setPhase(e.target.value)} style={{ ...inp, cursor: 'pointer' }}>
         {PHASES.map(p => <option key={p} value={p}>{p}</option>)}
       </select>
+
+      {error && (
+        <div style={{ padding: '9px 12px', background: 'rgba(232,64,64,0.1)', border: '1px solid rgba(232,64,64,0.3)', borderRadius: 7, fontSize: 12, color: '#E84040', marginTop: 4 }}>
+          {error}
+        </div>
+      )}
 
       <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
         <button onClick={create} disabled={!name.trim() || loading} style={{

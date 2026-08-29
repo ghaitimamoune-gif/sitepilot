@@ -1,0 +1,25 @@
+# Dépendances
+/node_modules
+/.pnp
+.pnp.js
+
+# Build Next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Secrets — ne jamais committer
+.env
+.env.local
+.env.*.local
+
+# Netlify
+.netlify/
+
+# Logs
+npm-debug.log*
+yarn-error.log*
+
+# Système
+.DS_Store

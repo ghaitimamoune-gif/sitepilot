@@ -1,11 +1,19 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClientOrNull } from '@/lib/supabase/server'
+import { SetupNotice } from '@/components/system/SetupNotice'
 import Link from 'next/link'
 import { CreateProjectForm } from '@/components/project/CreateProjectForm'
 import { LogoutButton } from '@/components/auth/LogoutButton'
 
+// Ces pages dépendent de la session (cookies) : elles doivent être évaluées
+// à chaque requête. Sans cela, Next peut les prérendre au build — et figer
+// dans le HTML l'état observé au moment de la construction.
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
-  const supabase = await createClient()
+  const supabase = await createClientOrNull()
+  if (!supabase) return <SetupNotice />
+
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
 

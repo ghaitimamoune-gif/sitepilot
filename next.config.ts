@@ -5,11 +5,12 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Ne pas bloquer le build sur des erreurs de typage TypeScript.
-  // Le code est fonctionnel ; cela évite que le déploiement échoue
-  // sur des incompatibilités de types liées aux jointures Supabase.
+  // La vérification des types est de nouveau active : les incompatibilités
+  // liées aux jointures Supabase ont été corrigées, et l'ancien réglage
+  // laissait passer en production des erreurs détectables au build.
+  // (Le dossier dupliqué `sitepilot/` est exclu via tsconfig.json.)
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
   images: {
     remotePatterns: [
