@@ -1,0 +1,91 @@
+# ============================================================
+# Maintien en éveil — SitePilot
+#
+# Supabase suspend les projets de l'offre gratuite après plusieurs jours
+# sans activité ; l'application devient alors inaccessible jusqu'à
+# réactivation manuelle. Ce workflow appelle chaque jour /api/health, qui
+# effectue une vraie requête vers la base : le compteur d'inactivité repart
+# de zéro.
+#
+# Effet secondaire utile : si l'application est en panne, le workflow
+# échoue et GitHub vous envoie une notification.
+#
+# ---- Configuration (une seule fois) ----
+# Repository → Settings → Secrets and variables → Actions → onglet
+# "Variables" → New repository variable :
+#     Nom   : SITE_URL
+#     Valeur: https://votre-site.netlify.app     (sans barre oblique finale)
+#
+# ---- À savoir ----
+# GitHub désactive automatiquement les workflows planifiés après 60 jours
+# sans aucune activité sur le dépôt. Le cas échéant, GitHub prévient par
+# e-mail et un clic suffit à les réactiver.
+# ============================================================
+
+name: Maintien en éveil
+
+on:
+  schedule:
+    # Tous les jours à 06:17 UTC. Une minute décalée plutôt que :00 —
+    # les planifications à l'heure pile sont souvent retardées par la charge.
+    - cron: '17 6 * * *'
+  workflow_dispatch: # permet de lancer le contrôle manuellement
+
+# Un seul contrôle à la fois ; inutile d'empiler les exécutions en retard.
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Contrôle de disponibilité
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {} # aucune écriture sur le dépôt n'est nécessaire
+
+    steps:
+      - name: Vérifier que SITE_URL est configurée
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          if [ -z "$SITE_URL" ]; then
+            echo "::error::La variable de dépôt SITE_URL n'est pas définie."
+            echo "Settings → Secrets and variables → Actions → Variables → New repository variable"
+            echo "  Nom : SITE_URL   Valeur : https://votre-site.netlify.app"
+            exit 1
+          fi
+
+      - name: Appeler /api/health
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          set -u
+          url="${SITE_URL%/}/api/health"
+          echo "Appel de $url"
+
+          # Trois tentatives espacées : un démarrage à froid de la fonction
+          # Netlify, ou un réveil de la base, peut dépasser le délai initial.
+          code=""
+          for tentative in 1 2 3; do
+            corps=$(curl --silent --location --max-time 45 \
+                         --write-out '\n%{http_code}' "$url") || corps=""
+            code=$(printf '%s' "$corps" | tail -n1)
+            reponse=$(printf '%s' "$corps" | sed '$d')
+
+            echo "Tentative $tentative — code HTTP : ${code:-aucun}"
+            echo "Réponse : ${reponse:-<vide>}"
+
+            if [ "$code" = "200" ]; then
+              echo "::notice::Application et base de données joignables."
+              exit 0
+            fi
+
+            if [ "$tentative" -lt 3 ]; then
+              echo "Nouvelle tentative dans 30 s..."
+              sleep 30
+            fi
+          done
+
+          echo "::error::L'application n'a pas répondu correctement après 3 tentatives (dernier code : ${code:-aucun})."
+          echo "Pistes : projet Supabase suspendu, variables d'environnement absentes sur Netlify, ou déploiement en échec."
+          exit 1

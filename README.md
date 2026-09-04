@@ -195,6 +195,67 @@ rechargeait bien les données, mais l'interface ne les reflétait jamais.
 Les erreurs Supabase (RLS, session expirée) sont désormais affichées à l'écran
 au lieu d'être ignorées silencieusement.
 
+### Je ne peux plus me connecter avec mes identifiants
+
+Lancez d'abord le diagnostic de `supabase/recuperation_acces.sql` (section 1)
+dans Supabase → SQL Editor. Il indique en une ligne laquelle de ces situations
+s'applique.
+
+La cause la plus fréquente est une **adresse e-mail jamais confirmée** :
+Supabase refuse alors la connexion bien que le mot de passe soit correct.
+La page de connexion affiche désormais ce motif précis et propose un bouton
+« Renvoyer l'e-mail de confirmation ». (Auparavant, toute erreur de connexion
+était présentée comme « Email ou mot de passe incorrect » — ce qui désignait à
+tort les identifiants.)
+
+Autre cas : la connexion réussit mais le tableau de bord est vide. Il ne s'agit
+pas d'un problème de droits mais de rattachement — l'application ne montre que
+les chantiers dont vous êtes propriétaire ou membre. Voir la section 4 du même
+fichier.
+
+> **À noter :** il n'existe pas de rôle « superadmin » dans cette application.
+> La colonne `profiles.role` est renseignée mais n'est lue nulle part ; les
+> droits réels découlent uniquement de l'appartenance au projet, via la
+> politique RLS `is_project_member`.
+
+### Empêcher la mise en veille
+
+Un projet Supabase de l'offre gratuite est **suspendu après 7 jours sans
+activité**, ce qui rend l'application inaccessible jusqu'à réactivation
+manuelle depuis le tableau de bord Supabase.
+
+Le workflow `.github/workflows/keepalive.yml` appelle chaque jour la route
+`/api/health`, qui effectue une vraie requête vers la base. Le compteur
+d'inactivité repart de zéro à chaque passage.
+
+**Configuration — une seule fois :**
+
+1. Repository → Settings → Secrets and variables → Actions → onglet **Variables**
+2. *New repository variable* — Nom : `SITE_URL`, Valeur : l'URL publique du site
+   (ex. `https://votre-site.netlify.app`, sans barre oblique finale)
+3. Onglet Actions → « Maintien en éveil » → *Run workflow* pour vérifier tout de suite
+
+Contrôle manuel à tout moment :
+
+```bash
+curl https://votre-site.netlify.app/api/health
+# {"status":"ok","database":"reachable","latencyMs":42,...}
+```
+
+Si le workflow échoue, GitHub vous envoie une notification — c'est aussi une
+alerte de panne.
+
+**Limites à connaître :**
+
+- GitHub désactive les workflows planifiés après **60 jours sans activité sur
+  le dépôt**. Un e-mail prévient et un clic suffit à les réactiver.
+- Les exécutions planifiées GitHub sont au mieux approximatives et peuvent être
+  retardées de quelques dizaines de minutes aux heures de charge. Sans
+  importance ici : la marge est de 7 jours.
+- Ce dispositif empêche la mise en veille par inactivité. Il ne protège pas
+  d'une suspension pour dépassement de quota ni d'un incident Supabase. La
+  seule garantie contractuelle reste une offre payante.
+
 ### Vérifier avant de déployer
 
 ```bash
