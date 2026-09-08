@@ -4,6 +4,7 @@ import { getMenu } from '@/lib/menu'
 import { getSetting } from '@/lib/settings'
 import { isSupabaseConfigured } from '@/lib/supabase/config'
 import { ProductCard } from '@/components/product/ProductCard'
+import { ProductRow } from '@/components/product/ProductRow'
 import { EasyPattern } from '@/components/brand/EasyPattern'
 import { Eyebrow } from '@/components/ui/Eyebrow'
 import { CategoryNav } from '@/components/product/CategoryNav'
@@ -44,24 +45,52 @@ export default async function MenuPage() {
             >
               <h2 className="mb-4 text-display-l">{category.name}</h2>
 
-              <div className="grid grid-cols-2 gap-x-4 gap-y-8">
-                {category.products.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/p/${p.slug}`}
-                    className="block"
-                    aria-label={p.name}
-                  >
-                    <ProductCard
-                      name={p.name}
-                      description={p.description}
-                      priceCents={p.price_cents}
-                      imageUrl={p.image_url}
-                      available={p.is_available}
-                    />
-                  </Link>
-                ))}
-              </div>
+              {/* Les produits photographiés en grande vignette, les autres en
+                  ligne de texte : une vignette vide ferait plus de mal que
+                  pas de vignette du tout. */}
+              {category.products.some((p) => p.image_url) && (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-8">
+                  {category.products
+                    .filter((p) => p.image_url)
+                    .map((p) => (
+                      <Link
+                        key={p.id}
+                        href={`/p/${p.slug}`}
+                        className="block"
+                        aria-label={p.name}
+                      >
+                        <ProductCard
+                          name={p.name}
+                          description={p.description}
+                          priceCents={p.price_cents}
+                          imageUrl={p.image_url}
+                          available={p.is_available}
+                        />
+                      </Link>
+                    ))}
+                </div>
+              )}
+
+              {category.products.some((p) => !p.image_url) && (
+                <div
+                  className={
+                    category.products.some((p) => p.image_url) ? 'mt-8' : ''
+                  }
+                >
+                  {category.products
+                    .filter((p) => !p.image_url)
+                    .map((p) => (
+                      <Link key={p.id} href={`/p/${p.slug}`} className="block">
+                        <ProductRow
+                          name={p.name}
+                          description={p.description}
+                          priceCents={p.price_cents}
+                          available={p.is_available}
+                        />
+                      </Link>
+                    ))}
+                </div>
+              )}
             </section>
           ))}
         </>

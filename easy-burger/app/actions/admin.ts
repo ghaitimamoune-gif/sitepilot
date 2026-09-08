@@ -26,6 +26,22 @@ export async function toggleProduct(id: string, available: boolean): Promise<Adm
   return { ok: true, message: available ? 'Remis en vente' : 'Marqué épuisé' }
 }
 
+/** Retirer de la carte, ou l'y remettre. Distinct de la rupture du jour. */
+export async function toggleListed(id: string, listed: boolean): Promise<AdminResult> {
+  const supabase = await createClient()
+  if (!supabase) return { ok: false, error: NO_DB }
+
+  const { error } = await supabase
+    .from('products')
+    .update({ is_listed: listed })
+    .eq('id', id)
+
+  if (error) return { ok: false, error: error.message }
+  revalidatePath('/admin/menu')
+  revalidatePath('/')
+  return { ok: true, message: listed ? 'Remis à la carte' : 'Retiré de la carte' }
+}
+
 export async function updateProduct(
   _prev: unknown,
   formData: FormData,

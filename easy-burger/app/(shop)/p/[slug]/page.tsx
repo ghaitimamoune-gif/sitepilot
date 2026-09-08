@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getProduct } from '@/lib/menu'
 import { ProductForm } from '@/components/product/ProductForm'
-import { Eyebrow } from '@/components/ui/Eyebrow'
 
 export const revalidate = 60
 
@@ -26,9 +25,11 @@ export default async function ProductPage({ params }: Params) {
 
   return (
     <article>
-      {/* §9 : photo pleine largeur. §4.5 : elle fait tout le travail. */}
-      <div className="relative aspect-[4/3] w-full bg-eb-cream">
-        {product.image_url ? (
+      {/* §9 : photo pleine largeur. §4.5 : elle fait tout le travail.
+          Sans photo, on ne met rien : un cadre vide de la hauteur d'un écran
+          dit au client que le produit n'existe pas vraiment. */}
+      {product.image_url && (
+        <div className="relative aspect-[4/3] w-full bg-eb-cream">
           <Image
             src={product.image_url}
             alt={product.name}
@@ -37,14 +38,10 @@ export default async function ProductPage({ params }: Params) {
             sizes="(max-width: 768px) 100vw, 768px"
             className="object-cover"
           />
-        ) : (
-          <div className="flex h-full items-center justify-center">
-            <Eyebrow className="text-eb-grey">photo à venir</Eyebrow>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="px-4 pt-5">
+      <div className={product.image_url ? 'px-4 pt-5' : 'px-4 pt-8'}>
         <h1 className="text-display-l">{product.name}</h1>
         {product.description && (
           <p className="mt-2 text-body-l text-eb-grey">{product.description}</p>

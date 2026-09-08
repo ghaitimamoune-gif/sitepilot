@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { toggleProduct, updateProduct } from '@/app/actions/admin'
+import { toggleListed, toggleProduct, updateProduct } from '@/app/actions/admin'
 import { Button } from '@/components/ui/Button'
 import { Field } from '@/components/ui/Field'
 import { Eyebrow } from '@/components/ui/Eyebrow'
@@ -17,6 +17,7 @@ type Product = {
   price_cents: number
   image_url: string | null
   is_available: boolean
+  is_listed: boolean
   sort_order: number
 }
 
@@ -41,11 +42,17 @@ export function MenuAdmin({ categories }: { categories: Category[] }) {
                   key={p.id}
                   className="flex flex-wrap items-center justify-between gap-3 border-b border-eb-line py-3"
                 >
-                  <div className={cn('min-w-0', !p.is_available && 'opacity-50')}>
+                  <div
+                    className={cn(
+                      'min-w-0',
+                      (!p.is_available || !p.is_listed) && 'opacity-50',
+                    )}
+                  >
                     <p className="text-body-l font-semibold">{p.name}</p>
                     <p className="eb-price text-body-s text-eb-grey">
                       {formatMAD(p.price_cents)}
-                      {p.image_url ? '' : ' · sans photo'}
+                      {p.image_url ? '' : ' · affiché en texte, sans photo'}
+                      {p.is_listed ? '' : ' · retiré de la carte'}
                     </p>
                   </div>
 
@@ -53,7 +60,7 @@ export function MenuAdmin({ categories }: { categories: Category[] }) {
                     <Button
                       size="sm"
                       variant={p.is_available ? 'outline' : 'primary'}
-                      disabled={pending}
+                      disabled={pending || !p.is_listed}
                       onClick={() =>
                         startTransition(async () => {
                           const r = await toggleProduct(p.id, !p.is_available)
@@ -63,6 +70,20 @@ export function MenuAdmin({ categories }: { categories: Category[] }) {
                       }
                     >
                       {p.is_available ? 'Marquer épuisé' : 'Remettre en vente'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="quiet"
+                      disabled={pending}
+                      onClick={() =>
+                        startTransition(async () => {
+                          const r = await toggleListed(p.id, !p.is_listed)
+                          if (!r.ok) setError(r.error)
+                          else router.refresh()
+                        })
+                      }
+                    >
+                      {p.is_listed ? 'Retirer de la carte' : 'Remettre à la carte'}
                     </Button>
                     <Button size="sm" variant="quiet" onClick={() => setEditing(p)}>
                       Modifier

@@ -38,6 +38,11 @@ end $$;
 \echo '--- menu'
 select test_ok('4 catégories',   (select count(*) from public.categories) = 4);
 select test_ok('13 produits',    (select count(*) from public.products) = 13);
+select test_ok('11 à la carte : salade césar et milkshake retirés',
+  (select count(*) from public.products where is_listed) = 11);
+select test_ok('« retiré de la carte » n''est pas « en rupture »',
+  (select bool_and(is_available) from public.products
+    where slug in ('salade-cesar', 'milkshake')));
 select test_ok('cheeseburger à 6000 centimes',
   (select price_cents from public.products where slug = 'cheeseburger') = 6000);
 select test_ok('beignets : parfum obligatoire',

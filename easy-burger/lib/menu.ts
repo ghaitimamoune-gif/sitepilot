@@ -15,7 +15,7 @@ export async function getMenu(): Promise<Category[]> {
     .select(
       `id, slug, name, sort_order,
        products ( id, slug, name, description, price_cents, image_url,
-                  sort_order, is_available, is_featured )`,
+                  sort_order, is_available, is_featured, is_listed )`,
     )
     .eq('is_active', true)
     .order('sort_order')
@@ -25,7 +25,11 @@ export async function getMenu(): Promise<Category[]> {
   return (data as unknown as Category[])
     .map((c) => ({
       ...c,
-      products: [...(c.products ?? [])].sort((a, b) => a.sort_order - b.sort_order),
+      // `is_listed` est le retrait de la carte ; `is_available` la rupture du
+      // jour, qui reste visible et barrée.
+      products: [...(c.products ?? [])]
+        .filter((p) => p.is_listed !== false)
+        .sort((a, b) => a.sort_order - b.sort_order),
     }))
     .filter((c) => c.products.length > 0)
 }
@@ -38,7 +42,7 @@ export async function getProduct(slug: string): Promise<Product | null> {
     .from('products')
     .select(
       `id, slug, name, description, price_cents, image_url, sort_order,
-       is_available, is_featured,
+       is_available, is_featured, is_listed,
        options:product_options ( id, name, type, is_required, sort_order,
          values:product_option_values ( id, name, price_delta_cents, is_available, sort_order ) )`,
     )
@@ -48,6 +52,8 @@ export async function getProduct(slug: string): Promise<Product | null> {
   if (error || !data) return null
 
   const product = data as unknown as Product
+  // Un lien direct vers un produit retiré ne doit pas le rendre commandable.
+  if (product.is_listed === false) return null
   product.options = [...(product.options ?? [])]
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((o) => ({

@@ -41,6 +41,8 @@ export type Product = {
   sort_order: number
   is_available: boolean
   is_featured: boolean
+  /** Présent sur la carte. Distinct de `is_available`, la rupture du jour. */
+  is_listed?: boolean
   options?: ProductOption[]
 }
 
