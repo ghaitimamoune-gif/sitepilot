@@ -1,0 +1,77 @@
+# =============================================================================
+# Easy Burger — vérifications automatiques
+# -----------------------------------------------------------------------------
+# Rejoue à chaque poussée ce qu'on vérifiait à la main : typage, lint, build,
+# et les 146 contrôles SQL sur un Postgres jetable.
+#
+# Aucun secret n'est nécessaire ici : le build de vérification tourne sans
+# Supabase, l'application est faite pour ça.
+# =============================================================================
+name: Easy Burger — CI
+
+on:
+  push:
+    paths: ['easy-burger/**', '.github/workflows/easy-burger-*.yml']
+  pull_request:
+    paths: ['easy-burger/**']
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: easy-burger
+
+jobs:
+  verifier:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: easy-burger/package-lock.json
+
+      - name: Installer les dépendances
+        # Le navigateur de test n'est pas nécessaire en CI : les parcours
+        # Playwright demandent la pile complète, ils restent manuels.
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci
+
+      - name: Typage
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx next lint --max-warnings 0
+
+      - name: Build
+        run: npm run build
+
+      - name: Contrôles SQL
+        env:
+          PGURL: postgres://postgres:postgres@localhost:5432/postgres
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          ./supabase/tests/run.sh | tee /tmp/sql.log
+          # `run.sh` affiche les échecs mais rend la main sans erreur : on
+          # échoue explicitement pour que la CI le voie.
+          if grep -qE 'ÉCHEC|ERROR' /tmp/sql.log; then
+            echo "::error::Des contrôles SQL ont échoué"
+            exit 1
+          fi
+          echo "$(grep -c '^  OK' /tmp/sql.log) contrôles passés"

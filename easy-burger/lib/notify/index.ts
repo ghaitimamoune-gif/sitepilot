@@ -3,19 +3,24 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { renderTemplate } from './templates'
 import { LogAdapter } from './log-adapter'
 import { SmsAdapter } from './sms-adapter'
+import { WhatsAppAdapter } from './whatsapp-adapter'
 import type { MessageAdapter } from './types'
 
 export * from './types'
 export { renderTemplate } from './templates'
 
 /**
- * L'adaptateur actif.
+ * L'adaptateur actif, par ordre de préférence.
  *
- * Le vrai fournisseur dès qu'il est configuré, le journal sinon : la file ne
- * doit jamais se boucher parce qu'un contrat n'est pas signé.
+ * WhatsApp d'abord quand il est configuré : au Maroc, le message y coûte
+ * nettement moins cher qu'un SMS et reste retrouvable dans le fil du client.
+ * Le SMS ensuite. Le journal en dernier recours — la file ne doit jamais se
+ * boucher parce qu'un contrat n'est pas signé.
  */
 export function getMessageAdapter(): MessageAdapter {
-  return SmsAdapter.isConfigured() ? SmsAdapter : LogAdapter
+  if (WhatsAppAdapter.isConfigured()) return WhatsAppAdapter
+  if (SmsAdapter.isConfigured()) return SmsAdapter
+  return LogAdapter
 }
 
 type PendingRow = {
@@ -71,6 +76,7 @@ export async function flushMessages(limit = 100): Promise<{
       phone: row.phone,
       template: row.template,
       body,
+      payload: row.payload,
     })
 
     await supabase.rpc('mark_message', {

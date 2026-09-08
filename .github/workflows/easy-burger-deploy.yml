@@ -1,0 +1,82 @@
+# =============================================================================
+# Easy Burger — déploiement vers Netlify
+# -----------------------------------------------------------------------------
+# Les clés vivent dans les secrets du dépôt (Settings → Secrets and variables
+# → Actions). Elles ne transitent ni par une conversation, ni par le code, et
+# ne sont jamais affichées dans les logs.
+#
+# Secrets nécessaires :
+#   NETLIFY_AUTH_TOKEN              jeton personnel Netlify
+#   NETLIFY_SITE_ID                 identifiant du site (Site configuration)
+#   NEXT_PUBLIC_SUPABASE_URL        URL du projet Supabase
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY   clé anon
+#
+# La clé `service_role` et `CRON_SECRET` ne se mettent PAS ici : elles se
+# saisissent côté Netlify, en portée « Functions », pour ne jamais approcher
+# d'un build front.
+# =============================================================================
+name: Easy Burger — Déploiement
+
+on:
+  workflow_dispatch:
+    inputs:
+      production:
+        description: 'Déployer en production (sinon, aperçu)'
+        type: boolean
+        default: true
+
+defaults:
+  run:
+    working-directory: easy-burger
+
+jobs:
+  deployer:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: easy-burger/package-lock.json
+
+      - name: Vérifier que les secrets sont en place
+        env:
+          TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          SITE: ${{ secrets.NETLIFY_SITE_ID }}
+          URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          missing=""
+          [ -n "$TOKEN" ] || missing="$missing NETLIFY_AUTH_TOKEN"
+          [ -n "$SITE" ]  || missing="$missing NETLIFY_SITE_ID"
+          [ -n "$URL" ]   || missing="$missing NEXT_PUBLIC_SUPABASE_URL"
+          [ -n "$KEY" ]   || missing="$missing NEXT_PUBLIC_SUPABASE_ANON_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Secrets manquants :$missing"
+            echo "À ajouter dans Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "Les quatre secrets sont présents."
+
+      - name: Installer les dépendances
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm ci
+
+      - name: Déployer
+        # `--build` fait tourner la chaîne Netlify ici, plugin Next compris :
+        # déposer un `.next` déjà construit priverait le site du moteur SSR.
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          npx --yes netlify-cli@17 deploy \
+            --build \
+            ${{ inputs.production && '--prod' || '' }} \
+            --message "GitHub Actions — ${GITHUB_SHA::7}"
