@@ -197,9 +197,23 @@ au lieu d'être ignorées silencieusement.
 
 ### Je ne peux plus me connecter avec mes identifiants
 
-Lancez d'abord le diagnostic de `supabase/recuperation_acces.sql` (section 1)
-dans Supabase → SQL Editor. Il indique en une ligne laquelle de ces situations
-s'applique.
+**Commencez par ceci** — le diagnostic interroge Supabase directement, sans
+passer par l'application, et donne le motif exact du refus :
+
+```bash
+node scripts/verifier-connexion.mjs
+```
+
+Le mot de passe est saisi masqué, n'est jamais affiché ni enregistré, et n'est
+transmis qu'à votre propre projet Supabase. Le script fonctionne même si le
+site déployé est en panne ; il suffit d'un `.env.local` renseigné.
+
+Il distingue les trois situations réelles : identifiants effectivement erronés,
+adresse e-mail non confirmée (mot de passe pourtant correct), ou projet Supabase
+en veille.
+
+Pour aller plus loin côté base, `supabase/recuperation_acces.sql` (section 1)
+dans Supabase → SQL Editor indique en une ligne l'état complet du compte.
 
 La cause la plus fréquente est une **adresse e-mail jamais confirmée** :
 Supabase refuse alors la connexion bien que le mot de passe soit correct.
