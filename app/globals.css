@@ -66,6 +66,21 @@ textarea {
   font-size: 16px; /* évite le zoom automatique sur iOS */
 }
 
+/* Zones tactiles d'au moins 44 pixels (une main, parfois humide). */
+button,
+summary,
+[role="button"] {
+  min-height: 44px;
+}
+summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+.badge button {
+  min-height: 0;
+}
+
 @layer components {
   .btn {
     @apply inline-flex min-h-tap min-w-tap items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-base font-semibold transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100;
@@ -80,7 +95,11 @@ textarea {
     @apply btn bg-red-600 text-white hover:bg-red-700;
   }
   .btn-sm {
-    @apply min-h-[40px] px-3 py-1.5 text-sm;
+    @apply min-h-tap px-3 py-1.5 text-sm;
+  }
+  /* Lien d'action discret, mais avec une zone tactile complète. */
+  .lien {
+    @apply inline-flex min-h-tap items-center;
   }
   .card {
     @apply rounded-2xl border border-line bg-card p-4 shadow-sm;

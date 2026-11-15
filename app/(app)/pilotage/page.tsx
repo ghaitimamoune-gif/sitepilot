@@ -27,7 +27,7 @@ export default async function PagePilotage() {
     <>
       <EnTete titre="Pilotage" sousTitre={dateLongue(journee)} action={<Link href="/taches/nouvelle" className="btn-ghost btn-sm">+ Tâche</Link>} />
       <div className="flex flex-col gap-4">
-        <Carte titre={`Alertes ouvertes (${alertes.length})`} action={<Link href="/alertes" className="text-sm text-brand">Toutes</Link>}>
+        <Carte titre={`Alertes ouvertes (${alertes.length})`} action={<Link href="/alertes" className="lien text-sm text-brand">Toutes</Link>}>
           <ListeAlertes alertes={serialiser(alertes.slice(0, 5)) as unknown as AlerteVue[]} compact />
         </Carte>
 
@@ -41,7 +41,7 @@ export default async function PagePilotage() {
           </div>
         </section>
 
-        <Carte titre="Commandes à valider" action={<Link href="/commandes" className="text-sm text-brand">Commandes</Link>}>
+        <Carte titre="Commandes à valider" action={<Link href="/commandes" className="lien text-sm text-brand">Commandes</Link>}>
           {aValider.length === 0 ? (
             <Vide>Aucune commande en attente.</Vide>
           ) : (
@@ -55,7 +55,7 @@ export default async function PagePilotage() {
           )}
         </Carte>
 
-        <Carte titre="Prévisionnel de la semaine" action={<Link href="/previsionnel" className="text-sm text-brand">Modifier</Link>}>
+        <Carte titre="Prévisionnel de la semaine" action={<Link href="/previsionnel" className="lien text-sm text-brand">Modifier</Link>}>
           <ul className="divide-rows text-sm">
             {previsions.map((p) => (
               <li key={p.date} className="flex items-center justify-between py-1.5">

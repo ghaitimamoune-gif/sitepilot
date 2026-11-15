@@ -56,7 +56,7 @@ export function ModelesTaches({ modeles, postes, familles, peutEcrire }: { model
         <span className="label">Jours (certains jours / hebdomadaire)</span>
         <div className="flex flex-wrap gap-1">
           {JOURS.map((j, i) => (
-            <label key={i} className="flex min-h-[40px] items-center gap-1 rounded-lg border border-line px-2 text-sm">
+            <label key={i} className="flex min-h-tap items-center gap-1 rounded-lg border border-line px-2 text-sm">
               <input type="checkbox" name="joursSemaine" value={i} defaultChecked={m.joursSemaine.includes(i)} className="accent-brand" disabled={!peutEcrire} /> {j}
             </label>
           ))}

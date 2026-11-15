@@ -28,12 +28,12 @@ export default async function PageManager() {
       <EnTete titre="Exploitation" sousTitre={dateLongue(journee)} action={<Link href="/taches/nouvelle" className="btn-ghost btn-sm">+ Tâche</Link>} />
       <div className="flex flex-col gap-4">
         {alertes.length > 0 && (
-          <Carte titre={`Alertes (${alertes.length})`} action={<Link href="/alertes" className="text-sm text-brand">Toutes</Link>}>
+          <Carte titre={`Alertes (${alertes.length})`} action={<Link href="/alertes" className="lien text-sm text-brand">Toutes</Link>}>
             <ListeAlertes alertes={serialiser(alertes.slice(0, 4)) as unknown as AlerteVue[]} compact />
           </Carte>
         )}
         {remontees.length > 0 && (
-          <Carte titre="Remontées jusqu'à vous" className="border-red-300" action={<Link href="/equipe" className="text-sm text-brand">Équipe</Link>}>
+          <Carte titre="Remontées jusqu'à vous" className="border-red-300" action={<Link href="/equipe" className="lien text-sm text-brand">Équipe</Link>}>
             <div className="flex flex-col gap-2">
               {remontees.slice(0, 5).map((t) => (
                 <CarteTache key={t.id} t={t} />
@@ -41,7 +41,7 @@ export default async function PageManager() {
             </div>
           </Carte>
         )}
-        <Carte titre={`Mes tâches (${restantes.length} restantes)`} action={<Link href="/taches" className="text-sm text-brand">Toutes</Link>}>
+        <Carte titre={`Mes tâches (${restantes.length} restantes)`} action={<Link href="/taches" className="lien text-sm text-brand">Toutes</Link>}>
           {restantes.length === 0 ? (
             <Vide>Tout est fait.</Vide>
           ) : (

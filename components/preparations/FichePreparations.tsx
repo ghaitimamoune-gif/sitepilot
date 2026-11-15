@@ -32,9 +32,20 @@ export interface LigneFiche {
 
 export function FichePreparations({ lignes, date, peutSaisirRestes, peutForcer }: { lignes: LigneFiche[]; date: string; peutSaisirRestes: boolean; peutForcer: boolean }) {
   const [ouverte, setOuverte] = useState<number | null>(null);
+  const [toutes, setToutes] = useState(false);
+  // Les préparations sans aucun besoin (produit pas encore à la carte, par exemple) sont repliées.
+  const sansBesoin = lignes.filter((l) => l.total < 1e-6 && l.forcee === null && !l.resteVeille);
+  const visibles = toutes ? lignes : lignes.filter((l) => !sansBesoin.includes(l));
   return (
     <ul className="flex flex-col gap-2">
-      {lignes.map((l) => {
+      {sansBesoin.length > 0 && !toutes && (
+        <li>
+          <button type="button" className="lien w-full justify-center text-sm text-muted" onClick={() => setToutes(true)}>
+            {sansBesoin.length} préparation{sansBesoin.length > 1 ? "s" : ""} sans besoin aujourd&apos;hui — afficher
+          </button>
+        </li>
+      )}
+      {visibles.map((l) => {
         const estOuverte = ouverte === l.articleId;
         return (
           <li key={l.articleId} className={`card p-3 ${l.forcee !== null ? "border-amber-400" : ""}`}>

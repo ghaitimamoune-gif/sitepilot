@@ -328,12 +328,19 @@ describe.skipIf(!disponible)("tâches, preuves et remontée par strates", () => 
     maintenant("2026-11-06T16:30:00+01:00");
     await remonterTachesEnRetard(new Date());
     const remontees = await tachesRemonteesPour("resp_cuisine", "2026-11-06");
-    expect(remontees.some((t) => t.posteId !== cuisine.posteId && t.statut === "en_retard")).toBe(true);
+    const ordinaire = remontees.find((t) => t.posteId !== cuisine.posteId && t.statut === "en_retard" && !t.structurante);
+    expect(ordinaire).toBeDefined();
+    // Une tâche ordinaire remonte sur l'écran du supérieur, sans alerte.
+    expect(await db.select().from(schema.alertes).where(eq(schema.alertes.objetId, ordinaire!.id))).toHaveLength(0);
     const releve = (await tachesDuPoste(cuisine.posteId, "2026-11-06")).find((t) => t.titre.startsWith("Relevé des températures des 6"))!;
     expect(releve.statut).toBe("en_retard");
+    // Remonte d'abord à la manager (strate supérieure du responsable cuisine)…
+    expect((await tachesRemonteesPour("manager", "2026-11-06")).some((t) => t.id === releve.id)).toBe(true);
+    // … et, structurante, aussi aux propriétaires, avec une alerte critique.
     const alertes = await db.select().from(schema.alertes).where(eq(schema.alertes.cleUnique, `tache:${releve.id}:en_retard`));
     expect(alertes[0].type).toBe("tache_structurante");
-    expect(alertes[0].roles).toEqual(expect.arrayContaining(["manager", "proprietaire"]));
+    expect(alertes[0].niveau).toBe("critique");
+    expect(alertes[0].roles).toContain("proprietaire");
     const pourProprietaires = await tachesRemonteesPour("proprietaire", "2026-11-06");
     expect(pourProprietaires.some((t) => t.id === releve.id)).toBe(true);
   });

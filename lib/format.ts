@@ -18,7 +18,8 @@ export function fmtNombre(n: number | string | null | undefined, decimales = 1):
   if (n === null || n === undefined || n === "") return "—";
   const v = typeof n === "string" ? Number(n) : n;
   if (!Number.isFinite(v)) return "—";
-  return formatter(0, decimales).format(v).replace(/ /g, " ");
+  const texte = formatter(0, decimales).format(v).replace(/ /g, " ");
+  return /^-0([,.]0*)?$/.test(texte) ? texte.slice(1) : texte;
 }
 
 export function fmtEntier(n: number | string | null | undefined): string {
@@ -45,7 +46,8 @@ export function fmtQuantite(n: number | string | null | undefined, estPiece: boo
   const v = typeof n === "string" ? Number(n) : n;
   if (!Number.isFinite(v)) return "—";
   const eps = 1e-9;
-  const arrondi = estPiece ? Math.ceil(v - eps) : Math.ceil(v * 10 - eps) / 10;
+  const brut = estPiece ? Math.ceil(v - eps) : Math.ceil(v * 10 - eps) / 10;
+  const arrondi = brut === 0 ? 0 : brut; // jamais « -0 »
   return estPiece ? fmtEntier(arrondi) : fmtNombre(arrondi, 1);
 }
 

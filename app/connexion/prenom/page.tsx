@@ -19,7 +19,7 @@ export default async function PagePrenom() {
       <div className="card">
         <ChoixPrenom prenoms={prenoms} />
       </div>
-      <a href="/connexion" className="text-center text-sm text-muted underline">
+      <a href="/connexion" className="lien justify-center text-sm text-muted underline">
         Ce n&apos;est pas mon poste
       </a>
     </main>

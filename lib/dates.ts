@@ -137,11 +137,12 @@ export function dateLongue(date: ISODate, avecAnnee = false): string {
   return `${nomJour(date)} ${d} ${MOIS[m - 1]}${avecAnnee ? ` ${y}` : ""}`;
 }
 
+const MOIS_COURTS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+
 /** « mar. 4 nov. » */
 export function dateCourte(date: ISODate): string {
   const [, m, d] = date.split("-").map(Number);
-  const moisCourt = MOIS[m - 1].slice(0, 4).replace(/\.$/, "") + ".";
-  return `${nomJour(date, true)} ${d} ${moisCourt}`;
+  return `${nomJour(date, true)} ${d} ${MOIS_COURTS[m - 1]}`;
 }
 
 /** « 04/11/2026 » */

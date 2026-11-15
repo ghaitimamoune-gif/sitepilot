@@ -376,30 +376,36 @@ export async function annulerTache(acteur: Acteur, role: Role, tacheId: number):
 // Remontée par strates et fin de journée
 // ---------------------------------------------------------------------------
 
+/**
+ * Une tâche remontée s'affiche en tête de l'écran du supérieur (voir tachesRemonteesPour).
+ * Seule une tâche structurante crée en plus une alerte, adressée aux propriétaires
+ * (tableau des alertes, section 11 du brief).
+ */
 async function remonterTache(t: Tache): Promise<void> {
   const [poste] = await db.select().from(schema.postes).where(eq(schema.postes.id, t.posteId));
   if (!poste) return;
-  const role = roleRemontee(versMinimal(poste));
-  const retardMin = Math.max(0, Math.round((Date.now() - t.echeance.getTime()) / 60000));
-  const detail = `${poste.nom} — ${t.statut === "bloquee" ? `bloquée : ${t.motifBlocage ?? ""}` : `en retard de ${retardMin} min`}`;
-  const roles: Role[] = [];
-  if (role) roles.push(role);
-  if (t.structurante && !roles.includes("proprietaire")) roles.push("proprietaire");
   await db
     .update(schema.taches)
     .set({ remonteeNiveau: Math.max(1, t.remonteeNiveau), remonteeLe: new Date() })
     .where(eq(schema.taches.id, t.id));
-  if (roles.length === 0) return;
+  if (!t.structurante) return;
+  const retardMin = Math.max(0, Math.round((Date.now() - t.echeance.getTime()) / 60000));
   await creerAlerte({
-    type: t.structurante ? "tache_structurante" : "tache_remontee",
-    niveau: t.structurante ? "critique" : "avertissement",
-    titre: `${t.statut === "bloquee" ? "Tâche bloquée" : "Tâche en retard"} : ${t.titre}`,
-    detail,
+    type: "tache_structurante",
+    niveau: "critique",
+    titre: `${t.statut === "bloquee" ? "Tâche structurante bloquée" : "Tâche structurante en retard"} : ${t.titre}`,
+    detail: `${poste.nom} — ${t.statut === "bloquee" ? `bloquée : ${t.motifBlocage ?? ""}` : `en retard de ${retardMin} min`}`,
     objetType: "tache",
     objetId: t.id,
-    roles,
+    roles: ["proprietaire"],
     cleUnique: `tache:${t.id}:${t.statut}`,
   });
+}
+
+/** Nombre de tâches remontées jusqu'à un rôle (compteur de l'onglet « Équipe »). */
+export async function compterRemontees(role: Role, journee: ISODate = journeeExploitation()): Promise<number> {
+  const rows = await tachesRemonteesPour(role, journee);
+  return rows.filter((t) => t.statut === "en_retard" || t.statut === "bloquee").length;
 }
 
 /** Passe en retard les tâches dont l'heure cible plus le délai est dépassée, et les remonte. */

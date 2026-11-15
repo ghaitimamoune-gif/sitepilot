@@ -32,7 +32,7 @@ export function BasculeTheme() {
           key={t}
           type="button"
           onClick={() => appliquer(t)}
-          className={`min-h-[36px] rounded-lg px-3 text-sm font-medium ${theme === t ? "bg-brand text-white" : "text-muted"}`}
+          className={`min-h-tap rounded-lg px-3 text-sm font-medium ${theme === t ? "bg-brand text-white" : "text-muted"}`}
         >
           {t === "auto" ? "Auto" : t === "light" ? "Clair" : "Sombre"}
         </button>

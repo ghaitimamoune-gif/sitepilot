@@ -7,7 +7,7 @@ export function EnTete({ titre, sousTitre, retour, action }: { titre: string; so
     <header className="mb-4 flex items-start justify-between gap-3">
       <div className="min-w-0">
         {retour && (
-          <Link href={retour} className="mb-1 inline-flex min-h-[32px] items-center text-sm text-muted hover:text-brand">
+          <Link href={retour} className="lien mb-1 text-sm text-muted hover:text-brand">
             ← Retour
           </Link>
         )}

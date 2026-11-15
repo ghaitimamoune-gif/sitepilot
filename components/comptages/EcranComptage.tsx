@@ -84,7 +84,7 @@ export function EcranComptage({
         {lignes.map((l, i) => (
           <li key={l.id} className="flex items-center gap-2 py-2">
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{l.nom}</p>
+              <p className="font-medium leading-snug">{l.nom}</p>
               <p className="text-xs text-muted">
                 {l.unite}
                 {l.structurant && " · structurant"}

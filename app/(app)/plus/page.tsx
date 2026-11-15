@@ -95,7 +95,7 @@ export default async function PagePlus() {
           </button>
         </form>
         <p className="text-center text-xs text-muted">
-          Easy Burger Ops · <Link href="/plus/aide" className="underline">Aide</Link>
+          Easy Burger Ops · <Link href="/plus/aide" className="lien underline">Aide</Link>
         </p>
       </div>
     </>

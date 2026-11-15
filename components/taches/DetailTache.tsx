@@ -135,7 +135,7 @@ export function DetailTache({ tache, photos, photosMax, estLeMien }: { tache: Ta
 
       {modifiable && (
         <div className="flex flex-col gap-2">
-          <BoutonAction className="btn-brand w-full text-lg" action={() => actionTerminerTache(tache.id)}>
+          <BoutonAction key={`fait-${photos.length}`} className="btn-brand w-full text-lg" action={() => actionTerminerTache(tache.id)}>
             C&apos;est fait
           </BoutonAction>
           {!bloquer ? (

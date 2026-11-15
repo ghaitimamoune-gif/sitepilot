@@ -4,12 +4,13 @@ import { aLeDroit, type Role } from "@/lib/auth/droits";
 import { exigerSession, type Session } from "@/lib/auth/session";
 import { compterAlertesOuvertes } from "@/lib/services/alertes";
 import { tickEnArrierePlan } from "@/lib/services/jobs";
+import { compterRemontees } from "@/lib/services/taches";
 
 export const dynamic = "force-dynamic";
 
-function elementsNav(s: Session, alertes: number): ElementNav[] {
+function elementsNav(s: Session, alertes: number, remontees: number): ElementNav[] {
   const role: Role = s.poste.role;
-  const plus: ElementNav = { href: "/plus", libelle: "Plus", icone: "☰", compteur: alertes };
+  const plus: ElementNav = { href: "/plus", libelle: "Plus", icone: "☰" };
   switch (role) {
     case "proprietaire":
       return [
@@ -21,7 +22,7 @@ function elementsNav(s: Session, alertes: number): ElementNav[] {
       ];
     case "manager":
       return [
-        { href: "/manager", libelle: "Accueil", icone: "◉", compteur: alertes },
+        { href: "/manager", libelle: "Accueil", icone: "◉", compteur: alertes + remontees },
         { href: "/taches", libelle: "Tâches", icone: "☑" },
         { href: "/receptions", libelle: "Réceptions", icone: "🚚" },
         { href: "/cloture", libelle: "Clôture", icone: "🌙" },
@@ -39,14 +40,14 @@ function elementsNav(s: Session, alertes: number): ElementNav[] {
       return [
         { href: "/preparations", libelle: "Préparations", icone: "🍳" },
         { href: "/comptages", libelle: "Comptage", icone: "🔢" },
-        { href: "/equipe", libelle: "Équipe", icone: "👥", compteur: alertes },
+        { href: "/equipe", libelle: "Équipe", icone: "👥", compteur: remontees },
         { href: "/taches", libelle: "Tâches", icone: "☑" },
         plus,
       ];
     case "resp_salle":
       return [
         { href: "/taches", libelle: "Tâches", icone: "☑" },
-        { href: "/equipe", libelle: "Équipe", icone: "👥", compteur: alertes },
+        { href: "/equipe", libelle: "Équipe", icone: "👥", compteur: remontees },
         { href: "/stocks", libelle: "Ruptures", icone: "⚠" },
         plus,
       ];
@@ -62,8 +63,11 @@ function elementsNav(s: Session, alertes: number): ElementNav[] {
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
   const s = await exigerSession();
   tickEnArrierePlan();
-  const alertes = aLeDroit(s.poste.role, "alertes:lire") ? await compterAlertesOuvertes({ role: s.poste.role, posteId: s.poste.id }) : { total: 0, critiques: 0 };
-  const nav = elementsNav(s, alertes.total);
+  const [alertes, remontees] = await Promise.all([
+    aLeDroit(s.poste.role, "alertes:lire") ? compterAlertesOuvertes({ role: s.poste.role, posteId: s.poste.id }) : Promise.resolve({ total: 0, critiques: 0 }),
+    ["manager", "resp_cuisine", "resp_salle"].includes(s.poste.role) ? compterRemontees(s.poste.role) : Promise.resolve(0),
+  ]);
+  const nav = elementsNav(s, alertes.total, remontees);
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-bg/95 px-4 py-2 backdrop-blur">

@@ -41,8 +41,13 @@ export async function ouvrirComptage(acteur: Acteur, familleId: number, fermetur
   if (existant) return existant;
   const charge = await chargerMoteur();
   // Le comptage de fermeture porte sur les produits critiques du coût matière, quelle que soit leur famille.
+  // Les préparations faites au service (sans part d'avance, comme la citronnade servie) n'ont pas de stock propre.
   const articles = [...charge.articles.values()].filter((a) =>
-    a.statut === "archive" ? false : fermeture ? a.critique : a.familleId === familleId,
+    a.statut === "archive" || (a.nature === "preparation" && a.partAvance === null)
+      ? false
+      : fermeture
+        ? a.critique
+        : a.familleId === familleId,
   );
   const [c] = await db
     .insert(schema.comptages)

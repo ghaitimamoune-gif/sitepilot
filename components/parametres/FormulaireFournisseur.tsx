@@ -56,7 +56,7 @@ export function FormulaireFournisseur({ fournisseur, liens, catalogue, peutEcrir
           <span className="label">Jours de livraison</span>
           <div className="flex flex-wrap gap-1">
             {JOURS.map((j, i) => (
-              <label key={i} className="flex min-h-[40px] items-center gap-1 rounded-lg border border-line px-2 text-sm">
+              <label key={i} className="flex min-h-tap items-center gap-1 rounded-lg border border-line px-2 text-sm">
                 <input type="checkbox" name="joursLivraison" value={i} defaultChecked={fournisseur.joursLivraison.includes(i)} className="accent-brand" disabled={d} /> {j}
               </label>
             ))}

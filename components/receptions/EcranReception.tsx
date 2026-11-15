@@ -108,7 +108,7 @@ export function EcranReception({ vue, photos, catalogue, peutEcrire }: { vue: Re
             <li key={l.id} className="py-2">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-medium">{l.nom}</p>
+                  <p className="font-medium leading-snug">{l.nom}</p>
                   <p className="text-xs text-muted">
                     {l.unite}
                     {l.qteRefusee > 0 ? ` · ${fmtNombre(l.qteRefusee, 2)} refusés` : ""}
@@ -158,7 +158,7 @@ export function EcranReception({ vue, photos, catalogue, peutEcrire }: { vue: Re
               ))}
             </ul>
           )}
-          <a href={`/fournisseurs/nouveau?retour=/receptions/${reception.id}`} className="mt-2 inline-block text-sm font-medium text-brand">
+          <a href={`/fournisseurs/nouveau?retour=/receptions/${reception.id}`} className="lien mt-2 text-sm font-medium text-brand">
             Nouvel article ou nouveau fournisseur…
           </a>
         </div>

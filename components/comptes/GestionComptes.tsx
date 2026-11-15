@@ -110,7 +110,7 @@ export function GestionComptes({ postes, estProprietaire, codeEnrolement, appare
                         <span className="flex items-center gap-2">
                           {!x.archivee && p.personnes.filter((y) => y.id !== x.id && !y.archivee).length > 0 && (
                             <>
-                              <select className="input min-h-[36px] w-28 py-1 text-xs" value={fusion[x.id] ?? ""} onChange={(e) => setFusion((f) => ({ ...f, [x.id]: Number(e.target.value) }))}>
+                              <select className="input w-28 py-1 text-xs" value={fusion[x.id] ?? ""} onChange={(e) => setFusion((f) => ({ ...f, [x.id]: Number(e.target.value) }))}>
                                 <option value="">fusionner dans…</option>
                                 {p.personnes.filter((y) => y.id !== x.id && !y.archivee).map((y) => (
                                   <option key={y.id} value={y.id}>{y.prenom}</option>

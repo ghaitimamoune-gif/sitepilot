@@ -243,8 +243,8 @@ export class Moteur {
 export function arrondiAffichage(valeur: number, estPiece: boolean): number {
   if (!Number.isFinite(valeur)) return 0;
   const eps = 1e-9;
-  if (estPiece) return Math.ceil(valeur - eps);
-  return Math.ceil(valeur * 10 - eps) / 10;
+  const r = estPiece ? Math.ceil(valeur - eps) : Math.ceil(valeur * 10 - eps) / 10;
+  return r === 0 ? 0 : r; // jamais « -0 »
 }
 
 /** Arrondi au conditionnement supérieur. */
