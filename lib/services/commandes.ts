@@ -10,7 +10,7 @@ import { journaliser, type Acteur } from "./journal";
 import { chargerMoteur } from "./moteur";
 import { chargerParametres, nombreDepuis } from "./parametres";
 import { articlesEnRupture } from "./ruptures";
-import { derniersPrix, quantitesEnCommande, stocksTheoriques, type PrixConnu } from "./stock";
+import { articlesComptes, derniersPrix, quantitesEnCommande, stocksTheoriques, type PrixConnu } from "./stock";
 import { validerTacheLiee } from "./taches";
 
 export type StatutCommande = (typeof schema.statutCommandeEnum.enumValues)[number];
@@ -114,7 +114,7 @@ export async function listerFournisseurs(inclureArchives = false): Promise<Fourn
  * le fournisseur présélectionné est celui dont le dernier prix est le plus bas.
  */
 export async function calculerPropositions(dateCommande: ISODate = dateLocale(), maintenant = new Date()): Promise<GroupeFournisseur[]> {
-  const [charge, cal, p, stocks, enCommande, prixMap, afRows, fournisseurs, ruptures] = await Promise.all([
+  const [charge, cal, p, stocks, enCommande, prixMap, afRows, fournisseurs, ruptures, comptes, clotureJour] = await Promise.all([
     chargerMoteur(),
     chargerCalendrier(),
     chargerParametres(),
@@ -124,7 +124,10 @@ export async function calculerPropositions(dateCommande: ISODate = dateLocale(),
     db.select().from(schema.articleFournisseurs).where(eq(schema.articleFournisseurs.actif, true)),
     listerFournisseurs(),
     articlesEnRupture(),
+    articlesComptes(),
+    db.select({ date: schema.cloturesJournee.date }).from(schema.cloturesJournee).where(eq(schema.cloturesJournee.date, dateCommande)),
   ]);
+  const consommationDuJourComptee = clotureJour.length > 0;
   const joursReverif = nombreDepuis(p, "prix_a_reverifier_jours");
   const fournisseurParId = new Map(fournisseurs.map((f) => [f.id, f]));
   const afParArticle = new Map<number, (typeof afRows)[number][]>();
@@ -154,6 +157,8 @@ export async function calculerPropositions(dateCommande: ISODate = dateLocale(),
   for (const a of charge.articles.values()) {
     if (a.statut === "archive" || a.nature === "preparation") continue;
     const enRupture = ruptures.has(a.id);
+    // Stock inconnu (jamais compté) : on ne commande pas sur un chiffre inventé, sauf rupture signalée.
+    if (!enRupture && !comptes.has(a.id)) continue;
     const liens = afParArticle.get(a.id) ?? [];
     const prixArticle = prixMap.get(a.id) ?? [];
     const options: OptionFournisseur[] = liens.map((af) => {
@@ -203,6 +208,7 @@ export async function calculerPropositions(dateCommande: ISODate = dateLocale(),
         enCommande: dejaCommande,
         qteParUniteCommande: qteUnite,
         seuilDlcVeilleFermeture: charge.donnees.seuilDlcVeilleFermeture,
+        consommationDuJourComptee,
       });
       if (prop) {
         besoin = prop.besoin;
@@ -711,6 +717,20 @@ export async function cloturerCommande(acteur: Acteur, commandeId: number): Prom
   if (!c || !["recue", "recue_partiellement", "envoyee"].includes(c.statut)) return;
   await db.update(schema.commandes).set({ statut: "cloturee", modifieLe: new Date() }).where(eq(schema.commandes.id, commandeId));
   await journaliser(acteur, "commande", "cloturer", { entiteId: commandeId, avant: { statut: c.statut } });
+}
+
+/** Articles achetés jamais comptés : leur stock est inconnu, ils ne sont pas proposés tant qu'un comptage ne les a pas fixés. */
+export async function articlesJamaisComptes(): Promise<{ id: number; nom: string; famille: string | null }[]> {
+  const [charge, comptes, liens] = await Promise.all([
+    chargerMoteur(),
+    articlesComptes(),
+    db.selectDistinct({ articleId: schema.articleFournisseurs.articleId }).from(schema.articleFournisseurs).where(eq(schema.articleFournisseurs.actif, true)),
+  ]);
+  const avecFournisseur = new Set(liens.map((l) => l.articleId));
+  return [...charge.articles.values()]
+    .filter((a) => a.statut !== "archive" && a.nature !== "preparation" && avecFournisseur.has(a.id) && !comptes.has(a.id))
+    .map((a) => ({ id: a.id, nom: a.nom, famille: a.familleNom }))
+    .sort((x, y) => (x.famille ?? "").localeCompare(y.famille ?? "", "fr") || x.nom.localeCompare(y.nom, "fr"));
 }
 
 /** Si une commande envoyée doit être complétée (prévisionnel corrigé), le complément apparaît comme nouvelle proposition. */

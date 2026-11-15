@@ -6,19 +6,40 @@ export type NatureMouvement = (typeof schema.natureMouvementEnum.enumValues)[num
 
 /**
  * Le stock théorique se déduit du journal des mouvements :
- *   dernier comptage validé + réceptions validées − consommation théorique − pertes déclarées.
- * Un comptage est enregistré comme un mouvement dont la quantité est l'écart appliqué, si bien
- * que la somme de tous les mouvements d'un article est son stock théorique.
+ *   dernier comptage validé + réceptions validées − consommation théorique − pertes déclarées
+ *   (+ production des préparations maison).
+ * Seuls les mouvements postérieurs au dernier comptage comptent : une consommation datée de la
+ * veille mais enregistrée après le comptage du matin ne fausse pas le stock recalé.
  */
 export async function stocksTheoriques(articleIds?: number[], ex: Tx | typeof db = db): Promise<Map<number, number>> {
-  const q = ex
-    .select({ articleId: schema.mouvementsStock.articleId, total: dsql<string>`coalesce(sum(${schema.mouvementsStock.quantite}), 0)` })
-    .from(schema.mouvementsStock)
-    .groupBy(schema.mouvementsStock.articleId);
-  const rows = articleIds && articleIds.length > 0 ? await q.where(inArray(schema.mouvementsStock.articleId, articleIds)) : await q;
+  const filtre = articleIds && articleIds.length > 0 ? dsql`and m.article_id in (${dsql.join(articleIds.map((id) => dsql`${id}`), dsql`, `)})` : dsql``;
+  const res = await ex.execute(dsql`
+    with dernier as (
+      select distinct on (article_id) article_id, at, stock_apres
+      from mouvements_stock
+      where nature = 'comptage'
+      order by article_id, at desc, id desc
+    )
+    select m.article_id as "articleId",
+           coalesce(max(d.stock_apres), 0)
+           + coalesce(sum(m.quantite) filter (where m.nature <> 'comptage' and (d.at is null or m.at > d.at)), 0) as total
+    from mouvements_stock m
+    left join dernier d on d.article_id = m.article_id
+    where true ${filtre}
+    group by m.article_id
+  `);
   const m = new Map<number, number>();
-  for (const r of rows) m.set(r.articleId, Number(r.total));
+  for (const r of res as unknown as { articleId: number; total: string }[]) m.set(Number(r.articleId), Number(r.total));
   return m;
+}
+
+/** Articles ayant déjà été comptés au moins une fois (stock connu). */
+export async function articlesComptes(ex: Tx | typeof db = db): Promise<Set<number>> {
+  const rows = await ex
+    .selectDistinct({ articleId: schema.mouvementsStock.articleId })
+    .from(schema.mouvementsStock)
+    .where(eq(schema.mouvementsStock.nature, "comptage"));
+  return new Set(rows.map((r) => r.articleId));
 }
 
 export async function stockTheorique(articleId: number, ex: Tx | typeof db = db): Promise<number> {

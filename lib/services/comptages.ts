@@ -40,8 +40,9 @@ export async function ouvrirComptage(acteur: Acteur, familleId: number, fermetur
     );
   if (existant) return existant;
   const charge = await chargerMoteur();
-  const articles = [...charge.articles.values()].filter(
-    (a) => a.familleId === familleId && a.statut !== "archive" && (!fermeture || a.critique),
+  // Le comptage de fermeture porte sur les produits critiques du coût matière, quelle que soit leur famille.
+  const articles = [...charge.articles.values()].filter((a) =>
+    a.statut === "archive" ? false : fermeture ? a.critique : a.familleId === familleId,
   );
   const [c] = await db
     .insert(schema.comptages)
@@ -164,7 +165,8 @@ export async function validerComptage(acteur: Acteur, comptageId: number): Promi
         at: maintenant,
       });
       const a = charge.articles.get(l.articleId);
-      if (a?.structurant && Math.abs(ecartPct) > seuil) {
+      // Premier comptage d'un article : c'est une initialisation du stock, pas un écart.
+      if (a?.structurant && dernier && Math.abs(ecartPct) > seuil) {
         nbAlertes++;
         await creerAlerte(
           {
@@ -219,7 +221,12 @@ export async function derniersComptagesParFamille(): Promise<Map<number, string>
   return new Map(rows.map((r) => [r.familleId, r.date]));
 }
 
-/** Stock du matin (comptage quotidien) et du soir (comptage de fermeture) des produits critiques, pour le coût matière. */
+/**
+ * Stock du matin et du soir des produits critiques, pour le coût matière.
+ * Matin : comptage quotidien du jour ; à défaut (article compté chaque semaine, comme le cheddar),
+ * le dernier comptage validé avant l'ouverture, en pratique celui de fermeture de la veille.
+ * Soir : comptage de fermeture du jour.
+ */
 export async function comptagesCritiquesDuJour(date: string): Promise<{ matin: Map<number, number>; soir: Map<number, number> }> {
   const rows = await db
     .select({ fermeture: schema.comptages.fermeture, articleId: schema.comptageLignes.articleId, q: schema.comptageLignes.quantiteComptee })
@@ -231,6 +238,16 @@ export async function comptagesCritiquesDuJour(date: string): Promise<{ matin: M
   for (const r of rows) {
     if (r.q === null) continue;
     (r.fermeture ? soir : matin).set(r.articleId, Number(r.q));
+  }
+  const precedents = await db.execute(dsql`
+    select distinct on (l.article_id) l.article_id as "articleId", l.quantite_comptee as q
+    from comptage_lignes l
+    join comptages c on c.id = l.comptage_id
+    where c.statut = 'valide' and c.date < ${date} and l.quantite_comptee is not null
+    order by l.article_id, c.date desc, c.valide_le desc
+  `);
+  for (const r of precedents as unknown as { articleId: number; q: string }[]) {
+    if (!matin.has(Number(r.articleId))) matin.set(Number(r.articleId), Number(r.q));
   }
   return { matin, soir };
 }

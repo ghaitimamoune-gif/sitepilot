@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { DetailTache } from "@/components/taches/DetailTache";
 import { VerifierTache } from "@/components/taches/VerifierTache";
 import { Badge, EnTete } from "@/components/ui/primitives";
-import { dansPerimetre } from "@/lib/auth/droits";
+import { aLeDroit, dansPerimetre } from "@/lib/auth/droits";
 import { exigerSession } from "@/lib/auth/session";
 import { db, schema } from "@/lib/db";
 import { dateLongue, heureLocale, instantCourt } from "@/lib/dates";
@@ -75,7 +75,7 @@ export default async function PageTache({ params }: { params: Promise<{ id: stri
       />
       {!estLeMien && (dansMonPerimetre || estProprietaire) && (
         <div className="mt-4">
-          <VerifierTache tacheId={t.id} statut={t.statut} peutVerifier={dansMonPerimetre} peutAnnuler={t.ponctuelle && (estProprietaire || t.creeParPosteId === s.poste.id)} />
+          <VerifierTache tacheId={t.id} statut={t.statut} peutVerifier={dansMonPerimetre && aLeDroit(s.poste.role, "taches:verifier")} peutAnnuler={t.ponctuelle && (estProprietaire || t.creeParPosteId === s.poste.id)} />
         </div>
       )}
       {t.reporteeDe && <p className="mt-3 text-xs text-muted">Tâche ponctuelle reportée depuis un jour précédent.</p>}

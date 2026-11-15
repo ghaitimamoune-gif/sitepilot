@@ -119,6 +119,8 @@ export function proposerQuantite(params: {
   enCommande: number;
   qteParUniteCommande: number;
   seuilDlcVeilleFermeture?: number;
+  /** Vrai si la consommation du jour de la commande est déjà passée en stock (journée clôturée). */
+  consommationDuJourComptee?: boolean;
 }): PropositionCommande | null {
   const { moteur, articleId, fournisseur, dateCommande, stockActuel, enCommande } = params;
   const cal = moteur.calendrier;
@@ -135,7 +137,8 @@ export function proposerQuantite(params: {
   );
   const besoin = moteur.besoinSurJours(articleId, [...jours, ...joursSecurite]);
   // Consommation prévue d'ici la livraison : les jours de service d'aujourd'hui à la veille de la livraison.
-  const joursAvant = cal.joursOuvertsEntre(dateCommande, ajouterJours(dateLivraison, -1));
+  const debutAvant = params.consommationDuJourComptee ? ajouterJours(dateCommande, 1) : dateCommande;
+  const joursAvant = cal.joursOuvertsEntre(debutAvant, ajouterJours(dateLivraison, -1));
   const consommationAvantLivraison = moteur.besoinSurJours(articleId, joursAvant);
   const disponible = stockActuel - consommationAvantLivraison + enCommande;
   const aCommanderComptage = Math.max(0, besoin - disponible);

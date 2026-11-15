@@ -25,7 +25,7 @@ export default async function PageManager() {
   const restantes = taches.filter((t) => ["a_faire", "a_refaire", "en_retard", "bloquee"].includes(t.statut));
   return (
     <>
-      <EnTete titre="Exploitation" sousTitre={dateLongue(journee)} />
+      <EnTete titre="Exploitation" sousTitre={dateLongue(journee)} action={<Link href="/taches/nouvelle" className="btn-ghost btn-sm">+ Tâche</Link>} />
       <div className="flex flex-col gap-4">
         {alertes.length > 0 && (
           <Carte titre={`Alertes (${alertes.length})`} action={<Link href="/alertes" className="text-sm text-brand">Toutes</Link>}>

@@ -5,7 +5,7 @@ import { Badge, EnTete, Message } from "@/components/ui/primitives";
 import { aLeDroit } from "@/lib/auth/droits";
 import { exigerDroit } from "@/lib/auth/session";
 import { db, schema } from "@/lib/db";
-import { ajouterJours, dateLongue, journeeExploitation } from "@/lib/dates";
+import { dateLongue, heureLocale, journeeExploitation } from "@/lib/dates";
 import { fmtDH } from "@/lib/format";
 import { chargerMoteur } from "@/lib/services/moteur";
 
@@ -63,7 +63,12 @@ export default async function PagePreparations({ searchParams }: { searchParams:
           </div>
         }
       />
-      {date > ajouterJours(aujourdHui, 1) && <div className="mb-3"><Message type="info">Fiche prévisionnelle : les restes de la veille ne sont pas encore connus.</Message></div>}
+      {date > aujourdHui && <div className="mb-3"><Message type="info">Fiche du lendemain, consultable dès la veille au soir pour répartir le travail. Les restes de la veille se saisissent le matin même.</Message></div>}
+      {date === aujourdHui && heureLocale() >= "18:00" && (
+        <Link href={`/preparations?date=${prochain}`} className="btn-ghost mb-3 w-full">
+          Voir la fiche de {dateLongue(prochain)}
+        </Link>
+      )}
       <FichePreparations
         lignes={lignes}
         date={date}

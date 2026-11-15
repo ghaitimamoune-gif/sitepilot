@@ -65,6 +65,7 @@ export const natureMouvementEnum = pgEnum("nature_mouvement", [
   "consommation",
   "perte",
   "correction",
+  "production",
 ]);
 
 export const statutComptageEnum = pgEnum("statut_comptage", ["en_cours", "valide"]);

@@ -25,7 +25,7 @@ export default async function PagePilotage() {
   const ecartCa = chiffres.realise !== null && chiffres.prevu > 0 ? (chiffres.realise - chiffres.prevu) / chiffres.prevu : null;
   return (
     <>
-      <EnTete titre="Pilotage" sousTitre={dateLongue(journee)} />
+      <EnTete titre="Pilotage" sousTitre={dateLongue(journee)} action={<Link href="/taches/nouvelle" className="btn-ghost btn-sm">+ Tâche</Link>} />
       <div className="flex flex-col gap-4">
         <Carte titre={`Alertes ouvertes (${alertes.length})`} action={<Link href="/alertes" className="text-sm text-brand">Toutes</Link>}>
           <ListeAlertes alertes={serialiser(alertes.slice(0, 5)) as unknown as AlerteVue[]} compact />

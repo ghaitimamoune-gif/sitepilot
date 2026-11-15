@@ -1,0 +1,1 @@
+ALTER TYPE "public"."nature_mouvement" ADD VALUE 'production';

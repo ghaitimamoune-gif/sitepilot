@@ -1,7 +1,7 @@
 import "server-only";
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { and, eq, isNull, lte } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte, ne } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { ajouterJours, dateLocale } from "@/lib/dates";
 import { chargerParametres, nombreDepuis } from "./parametres";
@@ -11,20 +11,55 @@ import type { Acteur } from "./journal";
  * Stockage privé des photos. Jamais d'URL publique : les fichiers sont servis par
  * /api/photos/[id] après vérification de la session.
  *
- * Par défaut sur disque (DATA_DIR/photos). Pour un hébergement sans disque persistant,
- * remplacer `ecrireFichier` et `lireFichier` par un stockage objet (voir DEPLOIEMENT.md).
+ * Deux pilotes :
+ *  - Supabase Storage (bucket privé) si SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY sont définis,
+ *    obligatoire sur un hébergement sans disque persistant (Vercel) ;
+ *  - sinon le disque local (DATA_DIR/photos), pour un serveur classique ou le développement.
  */
 function dossierData(): string {
   return path.resolve(process.env.DATA_DIR ?? "./data");
 }
 
-async function ecrireFichier(chemin: string, contenu: Buffer): Promise<void> {
+function supabase(): { url: string; cle: string; bucket: string } | null {
+  const url = process.env.SUPABASE_URL;
+  const cle = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !cle) return null;
+  return { url: url.replace(/\/$/, ""), cle, bucket: process.env.SUPABASE_BUCKET ?? "photos" };
+}
+
+async function ecrireFichier(chemin: string, contenu: Buffer, mime: string): Promise<void> {
+  const s = supabase();
+  if (s) {
+    let derniere: unknown = null;
+    for (let essai = 0; essai < 3; essai++) {
+      try {
+        const r = await fetch(`${s.url}/storage/v1/object/${s.bucket}/${chemin}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${s.cle}`, apikey: s.cle, "Content-Type": mime, "x-upsert": "true" },
+          body: new Uint8Array(contenu),
+        });
+        if (r.ok) return;
+        derniere = new Error(`Stockage : ${r.status} ${await r.text()}`);
+      } catch (e) {
+        derniere = e;
+      }
+    }
+    throw derniere instanceof Error ? derniere : new Error("Stockage indisponible");
+  }
   const complet = path.join(dossierData(), chemin);
   await mkdir(path.dirname(complet), { recursive: true });
   await writeFile(complet, contenu);
 }
 
 async function lireFichier(chemin: string): Promise<Buffer | null> {
+  const s = supabase();
+  if (s) {
+    const r = await fetch(`${s.url}/storage/v1/object/authenticated/${s.bucket}/${chemin}`, {
+      headers: { Authorization: `Bearer ${s.cle}`, apikey: s.cle },
+    });
+    if (!r.ok) return null;
+    return Buffer.from(await r.arrayBuffer());
+  }
   try {
     return await readFile(path.join(dossierData(), chemin));
   } catch {
@@ -33,6 +68,15 @@ async function lireFichier(chemin: string): Promise<Buffer | null> {
 }
 
 async function supprimerFichier(chemin: string): Promise<void> {
+  const s = supabase();
+  if (s) {
+    await fetch(`${s.url}/storage/v1/object/${s.bucket}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${s.cle}`, apikey: s.cle, "Content-Type": "application/json" },
+      body: JSON.stringify({ prefixes: [chemin] }),
+    }).catch(() => undefined);
+    return;
+  }
   try {
     await unlink(path.join(dossierData(), chemin));
   } catch {
@@ -67,7 +111,13 @@ export async function enregistrerPhoto(
     })
     .returning({ id: schema.photos.id });
   const chemin = path.posix.join("photos", y, m, `${row.id}.jpg`);
-  await ecrireFichier(chemin, contenu);
+  try {
+    await ecrireFichier(chemin, contenu, options.mime ?? "image/jpeg");
+  } catch (e) {
+    // Un envoi échoué ne doit pas compter comme preuve : la ligne est marquée supprimée.
+    await db.update(schema.photos).set({ supprimeeLe: new Date() }).where(eq(schema.photos.id, row.id));
+    throw e;
+  }
   await db.update(schema.photos).set({ chemin }).where(eq(schema.photos.id, row.id));
   return { id: row.id };
 }
@@ -94,8 +144,8 @@ export async function compterPhotos(objetType: ObjetPhoto, objetIds: number[]): 
   const rows = await db
     .select({ objetId: schema.photos.objetId })
     .from(schema.photos)
-    .where(and(eq(schema.photos.objetType, objetType), isNull(schema.photos.supprimeeLe)));
-  for (const r of rows) if (objetIds.includes(r.objetId)) m.set(r.objetId, (m.get(r.objetId) ?? 0) + 1);
+    .where(and(eq(schema.photos.objetType, objetType), inArray(schema.photos.objetId, objetIds), isNull(schema.photos.supprimeeLe), ne(schema.photos.chemin, "")));
+  for (const r of rows) m.set(r.objetId, (m.get(r.objetId) ?? 0) + 1);
   return m;
 }
 

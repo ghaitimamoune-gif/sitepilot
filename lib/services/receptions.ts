@@ -248,9 +248,12 @@ async function enregistrerPrixDepuisReception(
     .where(eq(schema.prix.articleFournisseurId, af.id))
     .orderBy(desc(schema.prix.date), desc(schema.prix.id))
     .limit(1);
+  // Le prix facture est saisi par unité de comptage ; le catalogue le garde par unité de commande.
+  const prixUniteCommande = Number(l.prixHt) * (Number(af.qteParUniteCommande) || 1);
+  l = { ...l, prixHt: String(prixUniteCommande) };
   await tx.insert(schema.prix).values({
     articleFournisseurId: af.id,
-    prixHt: l.prixHt,
+    prixHt: String(prixUniteCommande),
     tvaPct: l.tvaPct ?? "0",
     date: r.date,
     saisiParPosteId: acteur.posteId,
@@ -302,6 +305,14 @@ export async function validerReception(acteur: Acteur, receptionId: number): Pro
   const r = await exigerBrouillon(receptionId);
   const lignes = await db.select().from(schema.receptionLignes).where(eq(schema.receptionLignes.receptionId, receptionId));
   if (lignes.length === 0) return { ok: false, erreur: "Ajoutez au moins un article." };
+  const sansQuantite = lignes.filter((l) => Number(l.qteRecue) <= 0 && Number(l.qteRefusee) <= 0);
+  if (sansQuantite.length > 0) {
+    const charge0 = await chargerMoteur();
+    return {
+      ok: false,
+      erreur: `Quantité manquante : ${sansQuantite.map((l) => charge0.articles.get(l.articleId)?.nom ?? l.articleId).join(", ")}. Retirez la ligne si l'article n'a pas été livré.`,
+    };
+  }
   const nbPhotos = (await compterPhotos("reception", [receptionId])).get(receptionId) ?? 0;
   if (nbPhotos === 0) return { ok: false, erreur: "La photo du bon de livraison est obligatoire." };
   if (!r.decision) return { ok: false, erreur: "Indiquez la décision : accepté, avec réserve ou refusé." };

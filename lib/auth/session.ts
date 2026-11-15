@@ -202,10 +202,9 @@ export async function ouvrirSession(prenom: string): Promise<{ ok: true; role: R
     .insert(schema.sessions)
     .values({ jetonHash: empreinte(jeton), posteId: poste.id, personneId: personne.id, appareilId: appareil.id })
     .returning();
-  const p = await chargerParametres();
-  const heures = nombreDepuis(p, "session_duree_heures");
+  // Le cookie dure ; c'est l'inactivité (12 h par défaut), vérifiée côté serveur, qui ferme la session.
   const jar = await cookies();
-  jar.set(COOKIE_SESSION, jeton, cookieOptions(heures * 3600));
+  jar.set(COOKIE_SESSION, jeton, cookieOptions(30 * 24 * 3600));
   jar.delete(COOKIE_PIN);
   await journaliser({ posteId: poste.id, personneId: personne.id }, "session", "ouvrir", { entiteId: s.id });
   return { ok: true, role: poste.role };
@@ -251,10 +250,9 @@ export const sessionCourante = cache(async (): Promise<Session | null> => {
   }
   // Prolongation : au plus une écriture par minute.
   if (Date.now() - row.s.derniereActivite.getTime() > 60000) {
-    db.update(schema.sessions)
-      .set({ derniereActivite: new Date() })
-      .where(eq(schema.sessions.id, row.s.id))
-      .then(() => undefined, () => undefined);
+    const maintenant = new Date();
+    await db.update(schema.sessions).set({ derniereActivite: maintenant }).where(eq(schema.sessions.id, row.s.id));
+    await db.update(schema.appareils).set({ dernierVuLe: maintenant }).where(eq(schema.appareils.id, row.s.appareilId));
   }
   return {
     sessionId: row.s.id,

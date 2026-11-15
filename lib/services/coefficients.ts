@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNotNull, lt, notLike, sql as dsql } from "drizzle-orm";
+import { and, desc, eq, gte, isNotNull, lt, sql as dsql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { ajouterJours, dateLocale, type ISODate } from "@/lib/dates";
 import type { TypeJournee } from "@/lib/engine/types";
@@ -22,14 +22,14 @@ export async function recalculerCoefficients(aujourdHui: ISODate = dateLocale())
   const ventes = await db
     .select({ date: schema.ventes.date, produitId: schema.ventes.produitId, quantite: dsql<string>`sum(${schema.ventes.quantite})` })
     .from(schema.ventes)
-    .where(and(gte(schema.ventes.date, debut), lt(schema.ventes.date, aujourdHui), isNotNull(schema.ventes.produitId), notLike(schema.ventes.typeVente, "periode%")))
+    .where(and(gte(schema.ventes.date, debut), lt(schema.ventes.date, aujourdHui), isNotNull(schema.ventes.produitId)))
     .groupBy(schema.ventes.date, schema.ventes.produitId);
   if (ventes.length === 0) return { appliques: 0, proposes: 0, joursUtilises: 0 };
   const dates = [...new Set(ventes.map((v) => v.date))];
   const caRows = await db
     .select({ date: schema.ventes.date, total: dsql<string>`sum(${schema.ventes.montant})` })
     .from(schema.ventes)
-    .where(and(gte(schema.ventes.date, debut), lt(schema.ventes.date, aujourdHui), notLike(schema.ventes.typeVente, "periode%")))
+    .where(and(gte(schema.ventes.date, debut), lt(schema.ventes.date, aujourdHui)))
     .groupBy(schema.ventes.date);
   const caParDate = new Map(caRows.map((r) => [r.date, Number(r.total)]));
   const caParType: Record<TypeJournee, number> = { semaine: 0, weekend: 0 };

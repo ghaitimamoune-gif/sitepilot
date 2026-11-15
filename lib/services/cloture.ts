@@ -1,4 +1,4 @@
-import { and, eq, gte, lte, desc, sql as dsql } from "drizzle-orm";
+import { and, eq, gte, inArray, lte, desc, sql as dsql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { dateLongue, finJourneeExploitation, instantLocal, journeeExploitation, type ISODate } from "@/lib/dates";
 import { fmtDH, fmtPct } from "@/lib/format";
@@ -46,10 +46,17 @@ export async function coutMatiereDuJour(date: ISODate): Promise<CoutMatiere> {
   const critiques = [...charge.articles.values()].filter((a) => a.critique && a.statut !== "archive");
   const debut = instantLocal(date, "04:00");
   const finExploit = finJourneeExploitation(date);
+  // Entrées du jour : réceptions pour les produits achetés, production de la fiche pour le pain fait maison.
   const receptionsRows = await db
     .select({ articleId: schema.mouvementsStock.articleId, total: dsql<string>`coalesce(sum(${schema.mouvementsStock.quantite}),0)` })
     .from(schema.mouvementsStock)
-    .where(and(eq(schema.mouvementsStock.nature, "reception"), gte(schema.mouvementsStock.at, debut), lte(schema.mouvementsStock.at, finExploit)))
+    .where(
+      and(
+        inArray(schema.mouvementsStock.nature, ["reception", "production"]),
+        gte(schema.mouvementsStock.at, debut),
+        lte(schema.mouvementsStock.at, finExploit),
+      ),
+    )
     .groupBy(schema.mouvementsStock.articleId);
   const receptions = new Map(receptionsRows.map((r) => [r.articleId, Number(r.total)]));
   const manque: string[] = [];

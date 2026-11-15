@@ -86,7 +86,7 @@ const MATRICE: Record<Droit, Role[]> = {
   "cloture:ecrire": ["proprietaire", "manager"],
   "import:ventes": ["proprietaire", "manager"],
   "export:donnees": ["proprietaire"],
-  "journal:lire": ["proprietaire"],
+  "journal:lire": ["proprietaire", "manager"],
 };
 
 export function aLeDroit(role: Role, droit: Droit): boolean {

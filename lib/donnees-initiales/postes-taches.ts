@@ -33,8 +33,8 @@ export const POSTES: PosteInitial[] = [
   { nom: "MEP pâtisserie et boissons", role: "employe", zone: "cuisine", pin: "1003", superieur: "Responsable cuisine", voitPreparations: true, ordre: 22 },
   { nom: "Grill et montage", role: "employe", zone: "cuisine", pin: "1004", superieur: "Responsable cuisine", voitPreparations: true, planNettoyage: true, ordre: 23 },
   { nom: "Frites et sides", role: "employe", zone: "cuisine", pin: "1005", superieur: "Responsable cuisine", voitPreparations: true, planNettoyage: true, ordre: 24 },
-  { nom: "Dispatch", role: "employe", zone: "cuisine", pin: "1006", superieur: "Responsable cuisine", ordre: 25 },
-  { nom: "Plonge et desserts", role: "employe", zone: "cuisine", pin: "1007", superieur: "Responsable cuisine", planNettoyage: true, ordre: 26 },
+  { nom: "Dispatch", role: "employe", zone: "cuisine", pin: "1006", superieur: "Responsable cuisine", voitPreparations: true, ordre: 25 },
+  { nom: "Plonge et desserts", role: "employe", zone: "cuisine", pin: "1007", superieur: "Responsable cuisine", voitPreparations: true, planNettoyage: true, ordre: 26 },
   { nom: "Serveur", role: "employe", zone: "salle", pin: "1008", superieur: "Responsable salle", ordre: 30 },
   { nom: "Ménage et débarrassage", role: "employe", zone: "salle", pin: "1009", superieur: "Responsable salle", planNettoyage: true, ordre: 31 },
 ];

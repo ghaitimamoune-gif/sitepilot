@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import { db, schema } from "@/lib/db";
 import { ajouterJours, journeeExploitation } from "@/lib/dates";
 import { recalculerCoefficients } from "./coefficients";
@@ -64,7 +65,14 @@ export async function tick(maintenant = new Date(), force = false): Promise<Resu
   return res;
 }
 
-/** Appel non bloquant depuis une page : les erreurs sont journalisées, jamais remontées à l'écran. */
+/**
+ * Appel non bloquant depuis une page : exécuté après l'envoi de la réponse (after),
+ * ce qui reste fiable sur un hébergement serverless. Les erreurs sont journalisées.
+ */
 export function tickEnArrierePlan(): void {
-  tick().catch((e) => console.error("[tick]", e));
+  try {
+    after(() => tick().then(() => undefined, (e) => console.error("[tick]", e)));
+  } catch {
+    tick().catch((e) => console.error("[tick]", e));
+  }
 }

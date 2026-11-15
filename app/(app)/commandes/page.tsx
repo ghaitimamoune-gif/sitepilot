@@ -5,7 +5,7 @@ import { aLeDroit } from "@/lib/auth/droits";
 import { exigerDroit } from "@/lib/auth/session";
 import { dateCourte, heureLocale } from "@/lib/dates";
 import { fmtDH } from "@/lib/format";
-import { calculerPropositions, complementsApresEnvoi, listerCommandes, LIBELLE_STATUT_COMMANDE, type StatutCommande } from "@/lib/services/commandes";
+import { articlesJamaisComptes, calculerPropositions, complementsApresEnvoi, listerCommandes, LIBELLE_STATUT_COMMANDE, type StatutCommande } from "@/lib/services/commandes";
 
 const TEINTE: Record<StatutCommande, Teinte> = {
   brouillon: "neutre",
@@ -22,10 +22,11 @@ export default async function PageCommandes() {
   const s = await exigerDroit("commandes:lire");
   const peutEcrire = aLeDroit(s.poste.role, "commandes:ecrire");
   const peutValider = aLeDroit(s.poste.role, "commandes:valider");
-  const [propositions, commandes, complements] = await Promise.all([
+  const [propositions, commandes, complements, jamaisComptes] = await Promise.all([
     peutEcrire ? calculerPropositions() : Promise.resolve([]),
     listerCommandes(undefined, 60),
     peutEcrire ? complementsApresEnvoi() : Promise.resolve([]),
+    peutEcrire ? articlesJamaisComptes() : Promise.resolve([]),
   ]);
   const actives = commandes.filter((c) => !["cloturee", "recue"].includes(c.c.statut));
   const terminees = commandes.filter((c) => ["cloturee", "recue"].includes(c.c.statut)).slice(0, 15);
@@ -80,6 +81,19 @@ export default async function PageCommandes() {
               </div>
             )}
           </Carte>
+        )}
+        {peutEcrire && jamaisComptes.length > 0 && (
+          <details className="card text-sm">
+            <summary className="cursor-pointer font-medium">
+              {jamaisComptes.length} article{jamaisComptes.length > 1 ? "s" : ""} jamais compté{jamaisComptes.length > 1 ? "s" : ""} : stock inconnu, non proposé{jamaisComptes.length > 1 ? "s" : ""}
+            </summary>
+            <p className="mt-2 text-xs text-muted">Le premier comptage de leur famille fixera le stock ; d&apos;ici là, ajoutez-les à la main dans une commande si besoin.</p>
+            <ul className="mt-2 grid grid-cols-2 gap-x-3 text-xs">
+              {jamaisComptes.map((a) => (
+                <li key={a.id} className="truncate">{a.nom}</li>
+              ))}
+            </ul>
+          </details>
         )}
         <Carte titre="En cours">
           {actives.length === 0 ? (

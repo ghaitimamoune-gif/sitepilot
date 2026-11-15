@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { aLeDroit } from "@/lib/auth/droits";
 import { acteur, sessionCourante } from "@/lib/auth/session";
 import { db, schema } from "@/lib/db";
-import { enregistrerPhoto, type ObjetPhoto } from "@/lib/services/photos";
+import { compterPhotos, enregistrerPhoto, type ObjetPhoto } from "@/lib/services/photos";
 import { chargerParametres, nombreDepuis } from "@/lib/services/parametres";
 
 export const runtime = "nodejs";
@@ -31,8 +31,8 @@ export async function POST(req: Request) {
       return new NextResponse("Accès refusé", { status: 403 });
     }
     if (t.preuve === "valeurs") retentionMois = nombreDepuis(p, "retention_temperatures_mois");
-    const nb = await db.select({ id: schema.photos.id }).from(schema.photos).where(eq(schema.photos.objetId, objetId));
-    if (nb.filter(Boolean).length >= nombreDepuis(p, "photos_max")) return new NextResponse("Nombre maximum de photos atteint", { status: 409 });
+    const nb = (await compterPhotos("tache", [objetId])).get(objetId) ?? 0;
+    if (nb >= nombreDepuis(p, "photos_max")) return new NextResponse("Nombre maximum de photos atteint", { status: 409 });
   } else if (objetType === "reception" || objetType === "facture") {
     if (!aLeDroit(session.poste.role, "receptions:ecrire") && !aLeDroit(session.poste.role, "prix:ecrire")) {
       return new NextResponse("Accès refusé", { status: 403 });
