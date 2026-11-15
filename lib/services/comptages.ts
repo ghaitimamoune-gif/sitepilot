@@ -1,4 +1,4 @@
-import { and, desc, eq, sql as dsql } from "drizzle-orm";
+import { and, desc, eq, gt, sql as dsql } from "drizzle-orm";
 import { db, schema } from "@/lib/db";
 import { journeeExploitation } from "@/lib/dates";
 import { creerAlerte } from "./alertes";
@@ -136,7 +136,7 @@ export async function validerComptage(acteur: Acteur, comptageId: number): Promi
           and(
             eq(schema.mouvementsStock.articleId, l.articleId),
             eq(schema.mouvementsStock.nature, "consommation"),
-            dernier ? dsql`${schema.mouvementsStock.at} > ${dernier.at}` : dsql`true`,
+            dernier ? gt(schema.mouvementsStock.at, dernier.at) : dsql`true`,
           ),
         );
       const consommation = -Number(conso?.total ?? 0);

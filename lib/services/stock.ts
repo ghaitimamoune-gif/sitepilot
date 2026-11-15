@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql as dsql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, lte, sql as dsql } from "drizzle-orm";
 import { db, schema, type Tx } from "@/lib/db";
 import type { ISODate } from "@/lib/dates";
 
@@ -95,8 +95,8 @@ export async function consommationEntre(articleId: number, depuis: Date, jusqua:
       and(
         eq(schema.mouvementsStock.articleId, articleId),
         eq(schema.mouvementsStock.nature, "consommation"),
-        dsql`${schema.mouvementsStock.at} > ${depuis}`,
-        dsql`${schema.mouvementsStock.at} <= ${jusqua}`,
+        gt(schema.mouvementsStock.at, depuis),
+        lte(schema.mouvementsStock.at, jusqua),
       ),
     );
   return -Number(r?.total ?? 0);

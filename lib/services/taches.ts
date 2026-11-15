@@ -410,7 +410,7 @@ export async function remonterTachesEnRetard(maintenant = new Date()): Promise<n
     .where(
       and(
         inArray(schema.taches.statut, ["a_faire", "a_refaire"]),
-        lt(dsql`${schema.taches.echeance} + make_interval(mins => ${schema.taches.delaiRemonteeMin})`, maintenant),
+        lt(dsql`${schema.taches.echeance} + make_interval(mins => ${schema.taches.delaiRemonteeMin})`, maintenant.toISOString()),
         gte(schema.taches.journee, ajouterJours(journeeExploitation(maintenant), -2)),
       ),
     );

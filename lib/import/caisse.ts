@@ -104,7 +104,8 @@ export function lireHeure(v: string | Date | number | null | undefined): string 
   return m ? `${pad(Number(m[1]))}:${m[2]}` : null;
 }
 
-const TOLERANCE_TOTAL = 1;
+/** Le total importé doit égaler la feuille SYNTHESE : seule l'erreur d'arrondi au centime est tolérée. */
+const TOLERANCE_TOTAL = 0.01;
 
 /**
  * Analyse du rapport détaillé. Règles vérifiées sur le rapport du 24 au 30 octobre 2026 :
