@@ -1,1 +1,0 @@
-export { DocumentsView } from './AllViews'

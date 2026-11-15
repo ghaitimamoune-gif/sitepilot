@@ -1,36 +1,41 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from "next/server";
 
-export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request })
+const COOKIE_APPAREIL = "eb_appareil";
+const COOKIE_SESSION = "eb_session";
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() { return request.cookies.getAll() },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          response = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
+/**
+ * Garde légère : présence des cookies d'enrôlement et de session. Les droits réels sont
+ * vérifiés côté serveur dans chaque page et chaque action (section 13, sécurité).
+ */
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+  const appareil = req.cookies.get(COOKIE_APPAREIL)?.value;
+  const session = req.cookies.get(COOKIE_SESSION)?.value;
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const isAuth = request.nextUrl.pathname.startsWith('/auth')
-  const isDash = request.nextUrl.pathname.startsWith('/dashboard') || request.nextUrl.pathname.startsWith('/project')
-
-  if (!user && isDash) return NextResponse.redirect(new URL('/auth/login', request.url))
-  if (user && isAuth) return NextResponse.redirect(new URL('/dashboard', request.url))
-
-  return response
+  if (pathname === "/enroler") {
+    return NextResponse.next();
+  }
+  if (!appareil) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/enroler";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  if (pathname.startsWith("/connexion")) {
+    return NextResponse.next();
+  }
+  if (!session) {
+    const url = req.nextUrl.clone();
+    url.pathname = "/connexion";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
-}
+  matcher: [
+    // Tout sauf les ressources statiques, le manifeste, les icônes et l'API cron.
+    "/((?!_next/|api/cron|api/photos|manifest\\.json|icon|apple-touch-icon|favicon|robots\\.txt).*)",
+  ],
+};

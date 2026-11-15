@@ -1,1 +1,0 @@
-export { ObservationsView } from './AllViews'

@@ -1,1 +1,0 @@
-export { IntervenantsView } from './AllViews'

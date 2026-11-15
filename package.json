@@ -1,31 +1,44 @@
 {
-  "name": "sitepilot",
-  "version": "0.1.0",
+  "name": "easy-burger-ops",
+  "version": "1.0.0",
   "private": true,
+  "description": "Easy Burger Ops — achats, stocks, préparations et tâches du restaurant",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "db:reset": "tsx scripts/reset.ts",
+    "icons": "tsx scripts/icons.ts",
+    "cron:tick": "tsx scripts/tick.ts"
   },
   "dependencies": {
-    "@supabase/ssr": "^0.5.2",
-    "@supabase/supabase-js": "^2.47.10",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
-    "next": "15.5.7",
+    "drizzle-orm": "^0.45.4",
+    "exceljs": "^4.4.0",
+    "next": "15.5.29",
+    "postgres": "^3.4.7",
     "react": "^19.1.2",
-    "react-dom": "^19.1.2"
+    "react-dom": "^19.1.2",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@netlify/plugin-nextjs": "^5.9.4",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.20",
-    "eslint": "^8",
-    "eslint-config-next": "15.5.7",
+    "dotenv": "^16.4.7",
+    "drizzle-kit": "^0.31.11",
     "postcss": "^8",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "sharp": "^0.34.3",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
   }
 }

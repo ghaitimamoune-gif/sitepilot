@@ -1,26 +1,17 @@
 {
-  "name": "SitePilot — Gestion chantier",
-  "short_name": "SitePilot",
-  "description": "Application de suivi de chantier terrain",
+  "name": "Easy Burger Ops",
+  "short_name": "EB Ops",
+  "description": "Achats, stocks, préparations et tâches du restaurant.",
+  "lang": "fr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0A0B0D",
-  "theme_color": "#F5A623",
-  "orientation": "any",
+  "orientation": "portrait",
+  "background_color": "#F7F6F3",
+  "theme_color": "#FF3D00",
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable any"
-    }
-  ],
-  "categories": ["productivity", "business"],
-  "lang": "fr"
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
 }

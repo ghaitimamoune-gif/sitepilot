@@ -1,12 +1,31 @@
-import type { Config } from 'tailwindcss'
+import type { Config } from "tailwindcss";
 
 const config: Config = {
-  content: [
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: { extend: {} },
+  darkMode: ["class", '[data-theme="dark"]'],
+  content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+  theme: {
+    extend: {
+      colors: {
+        brand: {
+          DEFAULT: "#FF3D00",
+          dark: "#D13200",
+          soft: "#FFE8E0",
+        },
+        bg: "rgb(var(--bg) / <alpha-value>)",
+        card: "rgb(var(--card) / <alpha-value>)",
+        ink: "rgb(var(--ink) / <alpha-value>)",
+        muted: "rgb(var(--muted) / <alpha-value>)",
+        line: "rgb(var(--line) / <alpha-value>)",
+      },
+      fontFamily: {
+        display: ['"Barlow Condensed"', "Impact", "sans-serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+      },
+      minHeight: { tap: "44px" },
+      minWidth: { tap: "44px" },
+    },
+  },
   plugins: [],
-}
+};
 
-export default config
+export default config;

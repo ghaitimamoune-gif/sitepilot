@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="113" ry="113" fill="#FF3D00"/>
+  <text x="50%" y="54%" text-anchor="middle" dominant-baseline="middle"
+        font-family="Barlow Condensed, Impact, Arial Narrow, DejaVu Sans Condensed, sans-serif"
+        font-weight="700" font-size="207" fill="#FFFFFF" letter-spacing="5">EB</text>
+  <rect x="153.6" y="389.12" width="204.8" height="15.36" rx="7.68" fill="#FFFFFF" opacity="0.9"/>
+</svg>
