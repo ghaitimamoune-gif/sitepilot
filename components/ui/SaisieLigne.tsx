@@ -35,7 +35,8 @@ export function SaisieLigne({
   const [etat, setEtat] = useState<Etat>(valeurInitiale === null || initialEnregistre === false ? "vide" : "enregistre");
   const [pendingValeur, setPendingValeur] = useState<number | null | undefined>(undefined);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const derniere = useRef<number | null>(valeurInitiale);
+  // Valeur connue du serveur ; « undefined » pour une valeur seulement affichée (une estimation à confirmer).
+  const derniere = useRef<number | null | undefined>(initialEnregistre === false ? undefined : valeurInitiale);
   const stockageCle = `eb_pending_${cle}`;
 
   const envoyer = useCallback(
