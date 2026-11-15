@@ -68,6 +68,12 @@ export async function enrolerAppareil(code: string, libelle?: string): Promise<{
     await journaliser(null, "appareil", "enrolement_refuse", { apres: { libelle: libelle ?? null } });
     return { ok: false, erreur: "Code d'enrôlement incorrect." };
   }
+  await creerAppareil(libelle, "code");
+  return { ok: true };
+}
+
+/** Enrôle ce téléphone (cookie d'un an) et renvoie l'identifiant de l'appareil. */
+async function creerAppareil(libelle: string | undefined, par: "code" | "invitation" | "installation"): Promise<number> {
   const jeton = jetonAleatoire();
   const [a] = await db
     .insert(schema.appareils)
@@ -75,8 +81,25 @@ export async function enrolerAppareil(code: string, libelle?: string): Promise<{
     .returning();
   const jar = await cookies();
   jar.set(COOKIE_APPAREIL, jeton, cookieOptions(UN_AN));
-  await journaliser(null, "appareil", "enroler", { entiteId: a.id, apres: { libelle: a.libelle } });
-  return { ok: true };
+  await journaliser(null, "appareil", "enroler", { entiteId: a.id, apres: { libelle: a.libelle, par } });
+  return a.id;
+}
+
+/**
+ * Ouvre une session sur un poste désigné par une invitation ou par l'installation (et non par un
+ * code PIN) : le téléphone est enrôlé au passage s'il ne l'est pas encore.
+ */
+export async function ouvrirSessionPoste(
+  posteId: number,
+  prenom: string,
+  par: "invitation" | "installation",
+): Promise<{ ok: true; role: Role; personneId: number } | { ok: false; erreur: string }> {
+  const [poste] = await db.select().from(schema.postes).where(and(eq(schema.postes.id, posteId), eq(schema.postes.actif, true)));
+  if (!poste) return { ok: false, erreur: "Ce poste n'existe plus ou a été désactivé." };
+  if (!prenomValide(prenom)) return { ok: false, erreur: "Prénom invalide (2 à 30 lettres)." };
+  const appareil = await appareilCourant();
+  const appareilId = appareil?.id ?? (await creerAppareil(undefined, par));
+  return demarrerSession(poste.id, poste.role, prenom, appareilId);
 }
 
 // ---------------------------------------------------------------------------
@@ -176,6 +199,13 @@ export async function ouvrirSession(prenom: string): Promise<{ ok: true; role: R
   const poste = await posteApresPin();
   if (!poste) return { ok: false, erreur: "Le code PIN a expiré, recommencez." };
   if (!prenomValide(prenom)) return { ok: false, erreur: "Prénom invalide (2 à 30 lettres)." };
+  return demarrerSession(poste.id, poste.role, prenom, appareil.id);
+}
+
+/** Retrouve (ou crée) la personne de ce prénom sur le poste, puis ouvre la session sur cet appareil. */
+async function demarrerSession(posteId: number, role: Role, prenom: string, appareilId: number): Promise<{ ok: true; role: Role; personneId: number }> {
+  const poste = { id: posteId, role };
+  const appareil = { id: appareilId };
   const norm = normaliserPrenom(prenom);
   const maintenant = new Date();
   let [personne] = await db
@@ -207,7 +237,7 @@ export async function ouvrirSession(prenom: string): Promise<{ ok: true; role: R
   jar.set(COOKIE_SESSION, jeton, cookieOptions(30 * 24 * 3600));
   jar.delete(COOKIE_PIN);
   await journaliser({ posteId: poste.id, personneId: personne.id }, "session", "ouvrir", { entiteId: s.id });
-  return { ok: true, role: poste.role };
+  return { ok: true, role: poste.role, personneId: personne.id };
 }
 
 export async function fermerSession(): Promise<void> {

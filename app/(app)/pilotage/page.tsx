@@ -2,6 +2,9 @@ import Link from "next/link";
 import { ListeAlertes, type AlerteVue } from "@/components/ListeAlertes";
 import { Carte, Chiffre, EnTete, Ligne, Vide } from "@/components/ui/primitives";
 import { exigerDroit } from "@/lib/auth/session";
+import { pinDefini } from "@/lib/auth/crypto";
+import { listerPostes } from "@/lib/services/comptes";
+import { Message } from "@/components/ui/primitives";
 import { dateCourte, dateLongue, journeeExploitation } from "@/lib/dates";
 import { fmtDH, fmtPct } from "@/lib/format";
 import { alertesOuvertes } from "@/lib/services/alertes";
@@ -16,17 +19,26 @@ export default async function PagePilotage() {
   const journee = journeeExploitation();
   const cal = await chargerCalendrier();
   const veille = cal.jourOuvertPrecedent(journee);
-  const [alertes, chiffres, aValider, previsions] = await Promise.all([
+  const [alertes, chiffres, aValider, previsions, postes] = await Promise.all([
     alertesOuvertes({ role: s.poste.role, posteId: s.poste.id }),
     chiffresDeLaVeille(veille),
     listerCommandes(["en_attente_validation"]),
     listerPrevisions(8),
+    listerPostes(false),
   ]);
+  const sansCode = postes.filter((x) => x.role !== "employe" && !pinDefini(x.pinHash)).length;
   const ecartCa = chiffres.realise !== null && chiffres.prevu > 0 ? (chiffres.realise - chiffres.prevu) / chiffres.prevu : null;
   return (
     <>
       <EnTete titre="Pilotage" sousTitre={dateLongue(journee)} action={<Link href="/taches/nouvelle" className="btn-ghost btn-sm">+ Tâche</Link>} />
       <div className="flex flex-col gap-4">
+        {sansCode > 0 && (
+          <Link href="/mise-en-service" className="block">
+            <Message type="attention">
+              {sansCode} compte{sansCode > 1 ? "s" : ""} d&apos;associé ou d&apos;encadrement sans code : envoyez les invitations depuis « Mise en service ».
+            </Message>
+          </Link>
+        )}
         <Carte titre={`Alertes ouvertes (${alertes.length})`} action={<Link href="/alertes" className="lien text-sm text-brand">Toutes</Link>}>
           <ListeAlertes alertes={serialiser(alertes.slice(0, 5)) as unknown as AlerteVue[]} compact />
         </Carte>

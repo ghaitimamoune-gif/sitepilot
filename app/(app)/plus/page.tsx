@@ -52,6 +52,7 @@ const ENTREES: { titre: string; entrees: Entree[] }[] = [
   {
     titre: "Administration",
     entrees: [
+      { href: "/mise-en-service", libelle: "Mise en service (invitations)", droit: "comptes:encadrement" },
       { href: "/comptes", libelle: "Comptes et postes", droit: "comptes:employes" },
       { href: "/parametres", libelle: "Paramètres du moteur et seuils", droit: "parametres:lire" },
       { href: "/parametres/produits", libelle: "Produits, coefficients, nomenclature", droit: "parametres:lire" },

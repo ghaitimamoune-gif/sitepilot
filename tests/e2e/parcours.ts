@@ -167,6 +167,108 @@ async function main() {
     await ctx.close();
   });
 
+  /** Lien contenu dans la fenêtre de partage (QR code) : on le lit dans le bouton WhatsApp. */
+  async function lienPartage(page: Page): Promise<string> {
+    const href = (await page.locator('a:has-text("Envoyer par WhatsApp")').getAttribute("href")) as string;
+    const texte = decodeURIComponent(href.split("text=")[1] ?? "");
+    const m = texte.match(/https?:\/\/\S+/);
+    attendu(m, `aucun lien dans « ${texte} »`);
+    attendu((await page.locator('div[role="dialog"] svg').count()) === 1, "QR code absent");
+    return m[0];
+  }
+
+  const jetonInstallation = process.env.E2E_INSTALLATION_TOKEN;
+  if (jetonInstallation) {
+    await etape("Installation : le premier propriétaire choisit son code par un lien à usage unique", async () => {
+      const { ctx, page } = await telephone(browser);
+      await page.goto(`${BASE}/installation?jeton=mauvais-jeton`);
+      await page.waitForSelector("text=non valable");
+      await page.goto(`${BASE}/installation?jeton=${jetonInstallation}`);
+      await page.selectOption('select[name="posteId"]', { label: "Propriétaire — Amani" });
+      await page.fill('input[name="prenom"]', "Amani");
+      await page.fill('input[name="pin"]', "735194");
+      await page.fill('input[name="pin2"]', "735194");
+      await capture(page, "00-installation");
+      await page.click('button:has-text("Terminer l\'installation")');
+      await page.waitForURL(/\/mise-en-service$/);
+      await capture(page, "00-mise-en-service");
+      await ctx.close();
+      const autre = await telephone(browser);
+      await autre.page.goto(`${BASE}/installation?jeton=${jetonInstallation}`);
+      await autre.page.waitForSelector("text=déjà faite");
+      await autre.ctx.close();
+    });
+
+    await etape("Invitation personnelle : la responsable salle choisit son code, l'ancien ne marche plus", async () => {
+      const amani = await telephone(browser);
+      await enroler(amani.page);
+      await connexion(amani.page, "735194", "Amani");
+      await amani.page.goto(`${BASE}/comptes`);
+      await amani.page.locator('button:has-text("Responsable salle")').first().click();
+      await amani.page.click('button:has-text("Envoyer une invitation personnelle")');
+      await amani.page.waitForSelector('div[role="dialog"]');
+      await capture(amani.page, "00-invitation-qr");
+      const lien = await lienPartage(amani.page);
+      attendu(lien.includes("/invitation?jeton="), `lien inattendu ${lien}`);
+      await amani.ctx.close();
+
+      const salle = await telephone(browser);
+      await salle.page.goto(lien.replace(/^https?:\/\/[^/]+/, BASE));
+      await salle.page.fill('input[name="prenom"]', "Karim");
+      await salle.page.fill('input[name="pin"]', "4826");
+      await salle.page.fill('input[name="pin2"]', "4826");
+      await salle.page.click('button:has-text("Entrer")');
+      await salle.page.waitForURL(/\/taches/);
+      // Le lien ne sert qu'une fois.
+      await salle.page.goto(lien.replace(/^https?:\/\/[^/]+/, BASE));
+      await salle.page.waitForSelector("text=déjà été utilisé");
+      await salle.ctx.close();
+
+      const verif = await telephone(browser);
+      await enroler(verif.page);
+      await taperPin(verif.page, "4000");
+      await verif.page.waitForSelector("text=Code incorrect");
+      await taperPin(verif.page, "4826");
+      await verif.page.waitForURL(/\/connexion\/prenom/);
+      attendu((await verif.page.locator('button.display:has-text("Karim")').count()) === 1, "prénom non proposé");
+      await verif.ctx.close();
+    });
+
+    await etape("Nouvel employé : QR code du poste, prénom, connecté ; QR d'enrôlement prérempli", async () => {
+      const m = await telephone(browser);
+      await enroler(m.page);
+      await connexion(m.page, "1000", "Nadia");
+      await m.page.goto(`${BASE}/comptes`);
+      await m.page.locator('button:has-text("Serveur")').first().click();
+      await m.page.click('button:has-text("Inviter un employé sur ce poste")');
+      await m.page.waitForSelector('div[role="dialog"]');
+      const lien = await lienPartage(m.page);
+      await m.page.click('div[role="dialog"] button:has-text("Fermer")');
+      await m.page.click('button:has-text("Afficher le QR code d\'enrôlement")');
+      await m.page.waitForSelector('div[role="dialog"]');
+      const lienEnrolement = await lienPartage(m.page);
+      attendu(lienEnrolement.includes("/enroler?code="), `lien d'enrôlement inattendu ${lienEnrolement}`);
+      await m.ctx.close();
+
+      const e = await telephone(browser);
+      await e.page.goto(lien.replace(/^https?:\/\/[^/]+/, BASE));
+      attendu((await e.page.locator('input[name="pin"]').count()) === 0, "un employé ne doit pas choisir le code partagé du poste");
+      await e.page.fill('input[name="prenom"]', "Ilyas");
+      await e.page.click('button:has-text("Entrer")');
+      await e.page.waitForURL(/\/taches/);
+      await capture(e.page, "00-employe-bienvenue");
+      await e.ctx.close();
+
+      const q = await telephone(browser);
+      await q.page.goto(lienEnrolement.replace(/^https?:\/\/[^/]+/, BASE));
+      const valeur = await q.page.inputValue('input[name="code"]');
+      attendu(valeur.length >= 16, "code d'enrôlement non prérempli");
+      await q.page.click('button[type="submit"]');
+      await q.page.waitForURL(/\/connexion$/);
+      await q.ctx.close();
+    });
+  }
+
   await etape("La responsable achats ne peut pas ouvrir l'écran des réceptions, même par son adresse directe", async () => {
     const { ctx, page } = await telephone(browser);
     await enroler(page);

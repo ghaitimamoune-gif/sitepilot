@@ -8,7 +8,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
 async function main() {
-  const url = process.env.DATABASE_URL ?? "postgres://eb:eb@localhost:5432/easyburger";
+  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "postgres://eb:eb@localhost:5432/easyburger";
   const sql = postgres(url, { max: 1 });
   const db = drizzle(sql);
   await migrate(db, { migrationsFolder: "./drizzle" });

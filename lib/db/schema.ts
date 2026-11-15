@@ -227,6 +227,29 @@ export const sessions = pgTable("sessions", {
   fermeeLe: timestamp("fermee_le", { withTimezone: true }),
 });
 
+/**
+ * Invitation à usage unique pour un poste : le lien enrôle le téléphone et ouvre la session.
+ * Pour un compte personnel (propriétaire, encadrement), l'invité choisit lui-même le code PIN.
+ */
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: serial("id").primaryKey(),
+    posteId: integer("poste_id")
+      .notNull()
+      .references(() => postes.id),
+    jetonHash: text("jeton_hash").notNull(),
+    expireLe: timestamp("expire_le", { withTimezone: true }).notNull(),
+    utiliseeLe: timestamp("utilisee_le", { withTimezone: true }),
+    utiliseeParPersonneId: integer("utilisee_par_personne_id"),
+    annuleeLe: timestamp("annulee_le", { withTimezone: true }),
+    creeParPosteId: integer("cree_par_poste_id"),
+    creeParPersonneId: integer("cree_par_personne_id"),
+    creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("invitations_jeton_idx").on(t.jetonHash)],
+);
+
 export const tentativesPin = pgTable(
   "tentatives_pin",
   {

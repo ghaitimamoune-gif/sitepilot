@@ -11,6 +11,8 @@ import {
   actionRenouvelerCode,
   actionRevoquerAppareil,
 } from "@/app/actions/comptes";
+import { actionCreerInvitation, actionQrEnrolement } from "@/app/actions/invitations";
+import { PartageLien } from "@/components/comptes/PartageLien";
 import { BoutonAction } from "@/components/ui/BoutonAction";
 import { Formulaire } from "@/components/ui/Formulaire";
 import { Badge, Carte, Champ } from "@/components/ui/primitives";
@@ -25,6 +27,7 @@ export interface PosteVue {
   posteSuperieurId: number | null;
   voitPreparations: boolean;
   planNettoyage: boolean;
+  pinDefini: boolean;
   personnes: { id: number; prenom: string; archivee: boolean; derniereConnexion: string }[];
 }
 
@@ -53,12 +56,27 @@ export function GestionComptes({ postes, estProprietaire, codeEnrolement, appare
             <span className="font-semibold">{p.nom}</span>
             <span className="block text-xs text-muted">
               {LIBELLE_ROLE[p.role]} · {p.zone} · {p.personnes.filter((x) => !x.archivee).length} prénom(s)
+              {!p.pinDefini && <span className="font-semibold text-amber-700"> · code non choisi</span>}
             </span>
           </span>
           {!p.actif ? <Badge teinte="rouge">désactivé</Badge> : <span className="text-muted">{estOuvert ? "▴" : "▾"}</span>}
         </button>
         {estOuvert && (
           <div className="mt-3 flex flex-col gap-3 border-t border-line pt-3 text-sm">
+            {peutGerer && p.actif && p.id !== monPosteId && (
+              <div>
+                <PartageLien
+                  creer={() => actionCreerInvitation(p.id)}
+                  libelle={p.role === "employe" ? "Inviter un employé sur ce poste (QR code)" : "Envoyer une invitation personnelle"}
+                  className="btn-brand w-full"
+                />
+                <p className="mt-1 text-xs text-muted">
+                  {p.role === "employe"
+                    ? "Le nouvel employé scanne le QR code : son téléphone est enregistré, il tape son prénom et il est connecté."
+                    : "La personne ouvre le lien sur son téléphone et choisit elle-même son code. Lien à usage unique, valable 72 h."}
+                </p>
+              </div>
+            )}
             {(peutGerer || p.id === monPosteId) && (
               <div className="flex items-end gap-2">
                 <label className="flex-1">
@@ -142,6 +160,10 @@ export function GestionComptes({ postes, estProprietaire, codeEnrolement, appare
 
   return (
     <div className="flex flex-col gap-4">
+      <Carte titre="Enrôler un téléphone">
+        <p className="mb-2 text-sm text-muted">Le téléphone scanne le QR code (ou ouvre le lien reçu), puis saisit le code de son poste.</p>
+        <PartageLien creer={actionQrEnrolement} libelle="Afficher le QR code d'enrôlement" className="btn-brand w-full" />
+      </Carte>
       {estProprietaire && (
         <Carte titre="Code d'enrôlement des appareils">
           <p className="display text-2xl font-bold tracking-widest">{codeEnrolement || "— aucun —"}</p>

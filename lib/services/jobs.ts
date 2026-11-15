@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql as dsql } from "drizzle-orm";
 import { after } from "next/server";
 import { db, schema } from "@/lib/db";
 import { ajouterJours, journeeExploitation } from "@/lib/dates";
@@ -38,9 +38,14 @@ export interface ResultatTick {
  */
 export async function tick(maintenant = new Date(), force = false): Promise<ResultatTick> {
   const vide: ResultatTick = { execute: false, tachesGenerees: 0, remontees: 0, livraisons: 0, coefficients: null, photosPurgees: 0 };
-  const derniere = await derniereExecution("tick");
-  if (!force && derniere && maintenant.getTime() - derniere.getTime() < MINUTE) return vide;
-  await marquer("tick", maintenant);
+  // Réservation atomique : si deux pages se chargent en même temps, une seule exécute le traitement.
+  const reserve = await db.execute(dsql`
+    insert into taches_job (cle, derniere_execution) values ('tick', ${maintenant.toISOString()})
+    on conflict (cle) do update set derniere_execution = excluded.derniere_execution
+    where ${force} or taches_job.derniere_execution < ${new Date(maintenant.getTime() - MINUTE).toISOString()}
+    returning cle
+  `);
+  if ((reserve as unknown as unknown[]).length === 0) return vide;
   const journee = journeeExploitation(maintenant);
   const res: ResultatTick = { ...vide, execute: true };
   try {

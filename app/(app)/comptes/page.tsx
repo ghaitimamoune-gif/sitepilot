@@ -1,4 +1,5 @@
 import { GestionComptes } from "@/components/comptes/GestionComptes";
+import { pinDefini } from "@/lib/auth/crypto";
 import { EnTete } from "@/components/ui/primitives";
 import { exigerDroit } from "@/lib/auth/session";
 import { codeEnrolement, listerAppareils, listerPersonnes, listerPostes } from "@/lib/services/comptes";
@@ -19,6 +20,7 @@ export default async function PageComptes() {
       posteSuperieurId: p.posteSuperieurId,
       voitPreparations: p.voitPreparations,
       planNettoyage: p.planNettoyage,
+      pinDefini: pinDefini(p.pinHash),
       personnes: personnes.filter((x) => !x.fusionneeDans).map((x) => ({ id: x.id, prenom: x.prenom, archivee: x.archivee, derniereConnexion: x.derniereConnexion.toISOString() })),
     });
   }

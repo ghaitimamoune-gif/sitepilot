@@ -6,7 +6,8 @@ import { appareilCourant } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 
-export default async function PageEnroler() {
+export default async function PageEnroler({ searchParams }: { searchParams: Promise<{ code?: string }> }) {
+  const { code } = await searchParams;
   const appareil = await appareilCourant();
   if (appareil) redirect("/connexion");
   return (
@@ -18,7 +19,7 @@ export default async function PageEnroler() {
       </div>
       <Formulaire action={actionEnroler} bouton="Enrôler ce téléphone" className="card">
         <Champ label="Code d'enrôlement">
-          <input name="code" className="input text-center text-lg uppercase tracking-widest" autoComplete="off" autoCapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX" required />
+          <input name="code" defaultValue={code ?? ""} className="input text-center text-lg uppercase tracking-widest" autoComplete="off" autoCapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX" required />
         </Champ>
         <Champ label="Nom de l'appareil (facultatif)" aide="Par exemple « Téléphone de Youssef »">
           <input name="libelle" className="input" autoComplete="off" />

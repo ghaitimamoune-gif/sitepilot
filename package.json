@@ -17,15 +17,18 @@
     "cron:tick": "tsx scripts/tick.ts",
     "test:e2e": "tsx tests/e2e/parcours.ts",
     "sauvegarde": "bash scripts/sauvegarde.sh",
-    "restauration:test": "bash scripts/restauration-test.sh"
+    "restauration:test": "bash scripts/restauration-test.sh",
+    "db:initialiser": "tsx scripts/initialiser.ts"
   },
   "dependencies": {
+    "@types/qrcode": "^1.5.5",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.4",
     "exceljs": "^4.4.0",
     "next": "15.5.29",
     "postgres": "^3.4.7",
+    "qrcode": "^1.5.4",
     "react": "^19.1.2",
     "react-dom": "^19.1.2",
     "zod": "^3.25.76"

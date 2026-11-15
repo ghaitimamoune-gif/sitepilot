@@ -44,6 +44,7 @@ export const PARAMETRES_DEFAUT = {
     libelle: "Modèle du message WhatsApp de commande",
   },
   nom_restaurant: { valeur: "Easy Burger", libelle: "Nom du restaurant" },
+  installation_terminee: { valeur: "non", libelle: "Installation terminée (premier propriétaire inscrit)" },
 } as const;
 
 export type CleParametre = keyof typeof PARAMETRES_DEFAUT;

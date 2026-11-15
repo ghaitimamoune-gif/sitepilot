@@ -69,8 +69,13 @@ export async function creerAlerte(a: NouvelleAlerte, tx?: Tx): Promise<number | 
       posteId: a.posteId ?? null,
       cleUnique: a.cleUnique ?? null,
     })
+    // Deux traitements simultanés peuvent créer la même alerte : la seconde est ignorée.
+    .onConflictDoNothing({ target: schema.alertes.cleUnique })
     .returning({ id: schema.alertes.id });
-  return r?.id ?? null;
+  if (r) return r.id;
+  if (!a.cleUnique) return null;
+  const [existante] = await ex.select({ id: schema.alertes.id }).from(schema.alertes).where(eq(schema.alertes.cleUnique, a.cleUnique));
+  return existante?.id ?? null;
 }
 
 export interface FiltreAlertes {

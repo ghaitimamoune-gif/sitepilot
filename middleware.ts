@@ -12,7 +12,8 @@ export function middleware(req: NextRequest) {
   const appareil = req.cookies.get(COOKIE_APPAREIL)?.value;
   const session = req.cookies.get(COOKIE_SESSION)?.value;
 
-  if (pathname === "/enroler") {
+  // Pages d'entrée : enrôlement, installation du premier propriétaire, invitation personnelle.
+  if (pathname === "/enroler" || pathname === "/installation" || pathname === "/invitation") {
     return NextResponse.next();
   }
   if (!appareil) {

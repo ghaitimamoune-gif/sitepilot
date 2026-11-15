@@ -2,7 +2,8 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const url = process.env.DATABASE_URL ?? "postgres://eb:eb@localhost:5432/easyburger";
+// DATABASE_URL, ou POSTGRES_URL tel que l'injecte l'intégration Supabase de Vercel.
+const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "postgres://eb:eb@localhost:5432/easyburger";
 
 declare global {
   // eslint-disable-next-line no-var

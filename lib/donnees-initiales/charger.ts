@@ -6,7 +6,7 @@
 import { and, eq } from "drizzle-orm";
 import type { Db } from "@/lib/db";
 import { schema } from "@/lib/db";
-import { codeEnrolementAleatoire, hacherPin } from "@/lib/auth/crypto";
+import { codeEnrolementAleatoire, hacherPin, PIN_NON_DEFINI } from "@/lib/auth/crypto";
 import { estUnitePiece } from "@/lib/services/moteur";
 import { PARAMETRES_DEFAUT } from "@/lib/services/parametres";
 import { ARTICLES_ACHETES, FAMILLES_COMPTAGE, FAMILLES_PERTE, PREPARATIONS, PRODUITS, RECETTES, type ArticleInitial } from "./moteur";
@@ -16,10 +16,20 @@ const s = (n: number | null | undefined) => (n === null || n === undefined ? nul
 
 export interface ResultatChargement {
   codeEnrolement: string;
+  /** Codes de départ : seulement hors production (pinsInconnus faux). */
   postes: { nom: string; pin: string }[];
 }
 
-export async function chargerDonneesInitiales(db: Db, log: (m: string) => void = () => undefined): Promise<ResultatChargement> {
+export interface OptionsChargement {
+  /**
+   * Production : aucun code PIN connu. Chaque poste attend son code (installation, invitation,
+   * ou code fixé par un propriétaire ou la manager). Sans cette option, les codes de démonstration
+   * du fichier postes-taches.ts sont utilisés (développement et recette uniquement).
+   */
+  pinsInconnus?: boolean;
+}
+
+export async function chargerDonneesInitiales(db: Db, log: (m: string) => void = () => undefined, options: OptionsChargement = {}): Promise<ResultatChargement> {
   log("Paramètres…");
   for (const [cle, v] of Object.entries(PARAMETRES_DEFAUT)) {
     const valeur = cle === "code_enrolement" ? codeEnrolementAleatoire() : v.valeur;
@@ -166,7 +176,15 @@ export async function chargerDonneesInitiales(db: Db, log: (m: string) => void =
     }
     const [row] = await db
       .insert(schema.postes)
-      .values({ nom: p.nom, role: p.role, zone: p.zone, pinHash: await hacherPin(p.pin), voitPreparations: p.voitPreparations ?? false, planNettoyage: p.planNettoyage ?? false, ordre: p.ordre })
+      .values({
+        nom: p.nom,
+        role: p.role,
+        zone: p.zone,
+        pinHash: options.pinsInconnus ? PIN_NON_DEFINI : await hacherPin(p.pin),
+        voitPreparations: p.voitPreparations ?? false,
+        planNettoyage: p.planNettoyage ?? false,
+        ordre: p.ordre,
+      })
       .returning({ id: schema.postes.id });
     posteId.set(p.nom, row.id);
   }
@@ -205,5 +223,5 @@ export async function chargerDonneesInitiales(db: Db, log: (m: string) => void =
   }
 
   const [code] = await db.select().from(schema.parametres).where(eq(schema.parametres.cle, "code_enrolement"));
-  return { codeEnrolement: code?.valeur ?? "", postes: POSTES.map((p) => ({ nom: p.nom, pin: p.pin })) };
+  return { codeEnrolement: code?.valeur ?? "", postes: options.pinsInconnus ? [] : POSTES.map((p) => ({ nom: p.nom, pin: p.pin })) };
 }

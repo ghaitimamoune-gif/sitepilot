@@ -40,11 +40,29 @@ export function comparerEmpreintes(a: string, b: string): boolean {
   return ba.length === bb.length && timingSafeEqual(ba, bb);
 }
 
+/**
+ * Valeur d'un poste dont le code PIN n'a pas encore été choisi : aucune connexion par PIN
+ * n'est possible tant que le poste n'a pas reçu un code (installation, invitation, ou code fixé).
+ */
+export const PIN_NON_DEFINI = "!";
+
+export function pinDefini(hash: string): boolean {
+  return hash !== PIN_NON_DEFINI && hash.length > 10;
+}
+
 export async function hacherPin(pin: string): Promise<string> {
   return bcrypt.hash(pin, 10);
 }
 
+/** Comparaison en temps constant de deux secrets de longueurs quelconques. */
+export function secretsEgaux(a: string, b: string): boolean {
+  const ha = createHmac("sha256", "comparaison").update(a).digest();
+  const hb = createHmac("sha256", "comparaison").update(b).digest();
+  return timingSafeEqual(ha, hb);
+}
+
 export async function verifierPinHash(pin: string, hash: string): Promise<boolean> {
+  if (!pinDefini(hash)) return false;
   try {
     return await bcrypt.compare(pin, hash);
   } catch {
