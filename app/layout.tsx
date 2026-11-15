@@ -28,6 +28,9 @@ export const viewport: Viewport = {
 /** Applique le thème mémorisé avant le premier rendu, pour éviter un flash. */
 const scriptTheme = `try{var t=localStorage.getItem('eb_theme');if(t==='dark'||t==='light'){document.documentElement.setAttribute('data-theme',t)}}catch(e){}`;
 
+/** Service worker minimal : page d'attente en cas de coupure brève (pas de mode hors ligne complet). */
+const scriptSw = `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr" suppressHydrationWarning>
@@ -39,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
         <script dangerouslySetInnerHTML={{ __html: scriptTheme }} />
+        <script dangerouslySetInnerHTML={{ __html: scriptSw }} />
       </head>
       <body>{children}</body>
     </html>

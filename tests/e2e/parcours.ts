@@ -43,7 +43,7 @@ function attendu(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
 }
 
-async function telephone(browser: Browser, echelle = 1) {
+async function telephone(browser: Browser, echelle = Number(process.env.E2E_ECHELLE ?? 1)) {
   const ctx = await browser.newContext({
     viewport: { width: 360, height: 780 },
     deviceScaleFactor: echelle,

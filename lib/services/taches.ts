@@ -47,6 +47,9 @@ function modeleDuCeJour(m: typeof schema.tacheModeles.$inferSelect, date: ISODat
       return m.joursSemaine.includes(js);
     case "mensuelle":
       if (m.jourDuMois) return Number(date.slice(8, 10)) === m.jourDuMois;
+      // Avec un jour de semaine : sa première occurrence du mois (le comptage mensuel se fait
+      // avec le premier comptage hebdomadaire du mois). Sinon : premier jour ouvert du mois.
+      if (m.joursSemaine.length > 0) return m.joursSemaine.includes(js) && Number(date.slice(8, 10)) <= 7;
       return date === premierOuvertDuMois;
     default:
       return false;

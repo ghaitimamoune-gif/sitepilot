@@ -63,7 +63,7 @@ export default async function PagePilotage() {
                   {dateCourte(p.date)} <span className="text-xs text-muted">{p.type === "weekend" ? "week-end" : "semaine"}</span>
                 </span>
                 <span className="tabular-nums">
-                  {fmtDH(p.ca)} <span className={`text-xs ${p.origine === "saisi" ? "text-emerald-700" : "text-muted"}`}>{p.origine}</span>
+                  {fmtDH(p.ca)} <span className={`text-xs ${p.origine === "saisi" ? "text-emerald-700" : "text-muted"}`}>{p.origine === "saisi" ? "saisi" : "estimé"}</span>
                 </span>
               </li>
             ))}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Connexion perdue · Easy Burger Ops</title>
+    <style>
+      :root { --bg: #f7f6f3; --ink: #18181b; --muted: #71717a; --brand: #ff3d00; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #141416; --ink: #f4f4f5; --muted: #a1a1aa; } }
+      body { margin: 0; min-height: 100dvh; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--ink); font-family: Inter, system-ui, sans-serif; padding: 16px; box-sizing: border-box; }
+      main { max-width: 360px; text-align: center; }
+      .logo { width: 56px; height: 56px; margin: 0 auto 16px; border-radius: 16px; background: var(--brand); color: #fff; display: flex; align-items: center; justify-content: center; font: 700 24px "Barlow Condensed", Impact, sans-serif; }
+      h1 { font: 700 28px "Barlow Condensed", Impact, sans-serif; text-transform: uppercase; margin: 0 0 8px; }
+      p { color: var(--muted); line-height: 1.5; }
+      button { min-height: 48px; width: 100%; border: 0; border-radius: 12px; background: var(--brand); color: #fff; font-size: 16px; font-weight: 600; margin-top: 16px; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="logo">EB</div>
+      <h1>Connexion perdue</h1>
+      <p>Le téléphone n'arrive pas à joindre le serveur. Les saisies non transmises sont gardées sur le téléphone et seront renvoyées au retour du réseau.</p>
+      <button onclick="location.reload()">Réessayer</button>
+    </main>
+    <script>window.addEventListener("online", function () { location.reload(); });</script>
+  </body>
+</html>

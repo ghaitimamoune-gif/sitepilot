@@ -432,8 +432,8 @@ export const TACHES: TacheInitiale[] = [
   { titre: "Comptage hebdomadaire : emballages et stickers", poste: "Responsable achats", recurrence: "hebdomadaire", joursSemaine: [3], heureSemaine: "15:45", heureWeekend: "15:45", delaiRemonteeMin: 120, preuve: "aucune", ecranLie: "comptage", famille: "Emballages et stickers", ordre: 32 },
   { titre: "Comptage hebdomadaire : consommables de salle", poste: "Responsable achats", recurrence: "hebdomadaire", joursSemaine: [3], heureSemaine: "15:45", heureWeekend: "15:45", delaiRemonteeMin: 120, preuve: "aucune", ecranLie: "comptage", famille: "Consommables de salle", ordre: 33 },
   { titre: "Comptage hebdomadaire : entretien et hygiène", poste: "Responsable achats", recurrence: "hebdomadaire", joursSemaine: [3], heureSemaine: "15:45", heureWeekend: "15:45", delaiRemonteeMin: 120, preuve: "aucune", ecranLie: "comptage", famille: "Entretien et hygiène", ordre: 34 },
-  { titre: "Comptage mensuel : tenues", poste: "Responsable achats", recurrence: "mensuelle", heureSemaine: "15:45", heureWeekend: "15:45", delaiRemonteeMin: 240, preuve: "aucune", ecranLie: "comptage", famille: "Tenues", ordre: 35 },
-  { titre: "Comptage mensuel : petit matériel", poste: "Responsable achats", recurrence: "mensuelle", heureSemaine: "15:45", heureWeekend: "15:45", delaiRemonteeMin: 240, preuve: "aucune", ecranLie: "comptage", famille: "Petit matériel", ordre: 36 },
+  { titre: "Comptage mensuel : tenues", poste: "Responsable achats", recurrence: "mensuelle", joursSemaine: [3], heureSemaine: "15:45", heureWeekend: "15:45", delaiRemonteeMin: 240, preuve: "aucune", ecranLie: "comptage", famille: "Tenues", ordre: 35 },
+  { titre: "Comptage mensuel : petit matériel", poste: "Responsable achats", recurrence: "mensuelle", joursSemaine: [3], heureSemaine: "15:45", heureWeekend: "15:45", delaiRemonteeMin: 240, preuve: "aucune", ecranLie: "comptage", famille: "Petit matériel", ordre: 36 },
 ];
 
 /** Fournisseurs de départ : la section 15 (catalogue) n'étant pas jointe au brief, ces fiches sont « à vérifier ». */

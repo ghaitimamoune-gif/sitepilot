@@ -431,3 +431,21 @@ describe.skipIf(!disponible)("coût matière", () => {
     vi.useRealTimers();
   });
 });
+
+describe.skipIf(!disponible)("comptages hebdomadaires et mensuels", () => {
+  it("le comptage mensuel tombe avec le premier comptage hebdomadaire du mois (mercredi)", async () => {
+    await reinitialiserBase();
+    const achats = await acteurPour("Responsable achats", "Salma");
+    maintenant("2026-11-04T07:00:00+01:00"); // premier mercredi de novembre
+    await genererTachesDuJour("2026-11-04");
+    const titres = (await tachesDuPoste(achats.posteId, "2026-11-04")).map((t) => t.titre);
+    expect(titres).toContain("Comptage hebdomadaire : emballages et stickers");
+    expect(titres).toContain("Comptage mensuel : tenues");
+    maintenant("2026-11-11T07:00:00+01:00"); // deuxième mercredi : hebdomadaire seulement
+    await genererTachesDuJour("2026-11-11");
+    const titres2 = (await tachesDuPoste(achats.posteId, "2026-11-11")).map((t) => t.titre);
+    expect(titres2).toContain("Comptage hebdomadaire : emballages et stickers");
+    expect(titres2).not.toContain("Comptage mensuel : tenues");
+    vi.useRealTimers();
+  });
+});

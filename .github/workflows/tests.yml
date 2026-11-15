@@ -1,0 +1,42 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: eb
+          POSTGRES_PASSWORD: eb
+          POSTGRES_DB: easyburger_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U eb"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgres://eb:eb@localhost:5432/easyburger_test
+      TZ: Africa/Casablanca
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Contrôle des types
+        run: npm run typecheck
+      - name: Moteur, règles et intégration (PostgreSQL)
+        run: npm test
+      - name: Construction
+        run: npm run build
+        env:
+          DATABASE_URL: postgres://eb:eb@localhost:5432/easyburger_test
+          APP_SECRET: secret-de-construction-uniquement-0123456789
