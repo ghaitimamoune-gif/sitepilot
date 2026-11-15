@@ -19,6 +19,7 @@ export function SaisieLigne({
   disabled,
   className,
   autoFocus,
+  initialEnregistre,
 }: {
   /** Clé unique de la ligne (par exemple comptage-12-article-5). */
   cle: string;
@@ -28,8 +29,10 @@ export function SaisieLigne({
   disabled?: boolean;
   className?: string;
   autoFocus?: boolean;
+  /** Faux pour une valeur affichée mais pas encore enregistrée (estimation, par exemple). */
+  initialEnregistre?: boolean;
 }) {
-  const [etat, setEtat] = useState<Etat>(valeurInitiale === null ? "vide" : "enregistre");
+  const [etat, setEtat] = useState<Etat>(valeurInitiale === null || initialEnregistre === false ? "vide" : "enregistre");
   const [pendingValeur, setPendingValeur] = useState<number | null | undefined>(undefined);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const derniere = useRef<number | null>(valeurInitiale);

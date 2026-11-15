@@ -36,7 +36,7 @@ export function TableauPrevisions({ lignes, peutEcrire }: { lignes: PrevisionLig
             )}
           </div>
           {peutEcrire ? (
-            <SaisieLigne cle={`prev-${l.date}`} valeurInitiale={l.ca} enregistrer={(v) => actionSaisirPrevision(l.date, v)} className="w-28" />
+            <SaisieLigne cle={`prev-${l.date}`} valeurInitiale={Math.round(l.ca)} initialEnregistre={l.origine === "saisi"} enregistrer={(v) => actionSaisirPrevision(l.date, v)} className="w-28" />
           ) : (
             <span className="display text-xl font-bold tabular-nums">{Math.round(l.ca).toLocaleString("fr-FR")} <span className="text-xs font-normal text-muted">DH</span></span>
           )}
