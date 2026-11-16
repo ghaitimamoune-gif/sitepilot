@@ -1,4 +1,5 @@
-import { sql } from "@/lib/db";
+import { sql } from "drizzle-orm";
+import { db } from "@/lib/db";
 import { secretsEgaux } from "@/lib/auth/crypto";
 import { FUSEAU } from "@/lib/dates";
 import { chargerDemo, nombrePostes, viderBase } from "@/lib/demo/charger";
@@ -64,9 +65,7 @@ export async function POST(req: Request) {
 async function etat(log: (m: string) => void) {
   log(`Fuseau : ${FUSEAU} (tables ${process.versions.tz ?? "?"}), région ${process.env.VERCEL_REGION ?? "?"}`);
   log(`Postes en base : ${(await nombrePostes()) ?? "tables absentes"}`);
-  const sessions = await sql<
-    { pid: number; usename: string | null; state: string | null; attente: string | null; transaction_s: number | null; requete_s: number | null; requete: string | null }[]
-  >`
+  const sessions = (await db.execute(sql`
     select pid, usename, state,
            nullif(concat_ws(':', wait_event_type, wait_event), '') as attente,
            extract(epoch from now() - xact_start)::int as transaction_s,
@@ -74,21 +73,29 @@ async function etat(log: (m: string) => void) {
            left(regexp_replace(query, '\\s+', ' ', 'g'), 140) as requete
     from pg_stat_activity
     where datname = current_database() and pid <> pg_backend_pid() and state is distinct from 'idle'
-    order by xact_start nulls last`;
+    order by xact_start nulls last`)) as unknown as {
+    pid: number;
+    usename: string | null;
+    state: string | null;
+    attente: string | null;
+    transaction_s: number | null;
+    requete_s: number | null;
+    requete: string | null;
+  }[];
   log(`Sessions non inactives : ${sessions.length}`);
   for (const s of sessions) {
     log(`  pid ${s.pid} ${s.usename ?? "?"} ${s.state ?? "?"} attente=${s.attente ?? "-"} transaction=${s.transaction_s ?? "-"}s requête=${s.requete_s ?? "-"}s : ${s.requete ?? ""}`);
   }
-  const [verrous] = await sql<{ n: number }[]>`select count(*)::int as n from pg_locks where not granted`;
+  const [verrous] = (await db.execute(sql`select count(*)::int as n from pg_locks where not granted`)) as unknown as { n: number }[];
   log(`Verrous en attente : ${verrous?.n ?? 0}`);
 }
 
 async function liberer(log: (m: string) => void) {
-  const r = await sql<{ pid: number; ok: boolean; state: string | null }[]>`
+  const r = (await db.execute(sql`
     select pid, state, pg_terminate_backend(pid) as ok
     from pg_stat_activity
     where datname = current_database() and pid <> pg_backend_pid() and usename = current_user
       and state in ('active', 'idle in transaction', 'idle in transaction (aborted)')
-      and now() - coalesce(xact_start, query_start) > interval '60 seconds'`;
+      and now() - coalesce(xact_start, query_start) > interval '60 seconds'`)) as unknown as { pid: number; ok: boolean; state: string | null }[];
   log(r.length === 0 ? "Aucune session bloquée." : `Sessions bloquées terminées : ${r.map((s) => `${s.pid} (${s.state}) ${s.ok ? "ok" : "refusé"}`).join(", ")}`);
 }

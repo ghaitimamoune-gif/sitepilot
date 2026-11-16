@@ -13,11 +13,12 @@ Une autre pile convient si elle tient les mêmes exigences (voir « Serveur clas
 Pour chaque environnement (recette, puis production) :
 
 1. Créer un projet Supabase (région la plus proche : Europe de l'Ouest).
-2. **Connect → Connection string** : copier l'URI du *Session pooler* (port **5432**, hôte
-   `aws-…pooler.supabase.com`). C'est la valeur de `DATABASE_URL`. Ne pas prendre le *Transaction
-   pooler* (port 6543) : la bibliothèque postgres-js y enchaîne des requêtes sur une même connexion
-   et certaines n'aboutissent jamais (pages bloquées). L'application ouvre au plus 5 connexions par
-   instance (`DB_CONNEXIONS_MAX`), le pool gratuit de Supabase en accepte 15.
+2. **Connect → Connection string** : copier l'URI du *Transaction pooler* (port **6543**, hôte
+   `aws-…pooler.supabase.com`). C'est la valeur de `DATABASE_URL`. Le *Session pooler* (port 5432)
+   ne convient pas à Vercel : il limite à 15 connexions au total et chaque instance garde les
+   siennes ouvertes (pages en erreur au bout de 30 s). En mode transaction, l'application ne lance
+   jamais plus de requêtes simultanées que de connexions ouvertes (`DB_CONNEXIONS_MAX`, 10 par
+   défaut) : le pooler ne gère pas les requêtes enchaînées sur une même connexion.
 3. **Storage → New bucket** : nom `photos`, **Public : désactivé**. Les photos ne sont jamais
    publiques : l'application les sert elle-même après contrôle de la session.
 4. **Settings → API** : copier l'URL du projet (`SUPABASE_URL`) et la clé `service_role`

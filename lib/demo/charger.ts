@@ -5,8 +5,8 @@
  * attendue, une commande à valider, une rupture, un écart de stock, une perte, les tâches du jour).
  * Utilisé par `npm run demo` et par le point d'accès protégé /api/demo (mode test en ligne).
  */
-import { and, eq } from "drizzle-orm";
-import { db, schema, sql } from "@/lib/db";
+import { and, eq, sql } from "drizzle-orm";
+import { db, schema } from "@/lib/db";
 import { chargerDonneesInitiales } from "@/lib/donnees-initiales/charger";
 import { normaliserPrenom } from "@/lib/auth/prenom";
 import * as D from "@/lib/dates";
@@ -29,17 +29,17 @@ export interface ResultatDemo {
 
 /** Vide toutes les tables de l'application (le schéma et l'historique des migrations sont conservés). */
 export async function viderBase(): Promise<number> {
-  const tables = await sql<{ tablename: string }[]>`select tablename from pg_tables where schemaname = 'public'`;
+  const tables = (await db.execute(sql`select tablename from pg_tables where schemaname = 'public'`)) as unknown as { tablename: string }[];
   if (tables.length === 0) return 0;
-  await sql.unsafe(`TRUNCATE ${tables.map((t) => `"public"."${t.tablename}"`).join(", ")} RESTART IDENTITY CASCADE`);
+  await db.execute(sql.raw(`TRUNCATE ${tables.map((t) => `"public"."${t.tablename}"`).join(", ")} RESTART IDENTITY CASCADE`));
   return tables.length;
 }
 
 /** Nombre de postes déjà créés (0 : base vide), ou null si les tables n'existent pas encore. */
 export async function nombrePostes(): Promise<number | null> {
-  const existe = await sql`select to_regclass('public.postes') as t`;
+  const existe = (await db.execute(sql`select to_regclass('public.postes') as t`)) as unknown as { t: string | null }[];
   if (!existe[0]?.t) return null;
-  const n = await sql<{ n: number }[]>`select count(*)::int as n from postes`;
+  const n = (await db.execute(sql`select count(*)::int as n from postes`)) as unknown as { n: number }[];
   return n[0]?.n ?? 0;
 }
 
