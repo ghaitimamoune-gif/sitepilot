@@ -19,7 +19,8 @@
     "sauvegarde": "bash scripts/sauvegarde.sh",
     "restauration:test": "bash scripts/restauration-test.sh",
     "db:initialiser": "tsx scripts/initialiser.ts",
-    "demo": "tsx scripts/demo.ts"
+    "demo": "tsx scripts/demo.ts",
+    "demo:si-vide": "tsx scripts/demo.ts --si-vide"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.5",

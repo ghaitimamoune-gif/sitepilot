@@ -1,0 +1,8 @@
+node_modules
+.next
+data
+e2e-captures
+sauvegardes
+*.dump
+.env
+.env.*

@@ -2,7 +2,23 @@
  * Dates et heures de l'exploitation.
  * Fuseau Africa/Casablanca. La journée d'exploitation se termine à 4 h du matin.
  */
-export const FUSEAU = "Africa/Casablanca";
+
+/**
+ * Le Maroc est passé à l'heure GMT permanente (UTC+0) le 20 septembre 2026 (tzdata 2026c).
+ * Un environnement dont la table des fuseaux est plus ancienne calculerait encore UTC+1 :
+ * dans ce cas, on utilise UTC, qui est l'heure légale marocaine depuis cette date.
+ */
+function fuseauEffectif(): string {
+  try {
+    const f = new Intl.DateTimeFormat("en-US", { timeZone: "Africa/Casablanca", timeZoneName: "shortOffset" });
+    const nom = f.formatToParts(new Date(Date.UTC(2026, 10, 15, 12))).find((p) => p.type === "timeZoneName")?.value ?? "";
+    return nom === "GMT" || nom === "GMT+0" ? "Africa/Casablanca" : "UTC";
+  } catch {
+    return "UTC";
+  }
+}
+
+export const FUSEAU = fuseauEffectif();
 export const FIN_JOURNEE_EXPLOITATION_HEURE = 4;
 
 export type ISODate = string; // YYYY-MM-DD

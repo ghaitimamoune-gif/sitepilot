@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ClavierPin } from "@/components/ClavierPin";
+import { FUSEAU } from "@/lib/dates";
 import { accueilParRole } from "@/lib/auth/droits";
 import { appareilCourant, sessionCourante, verrouillage } from "@/lib/auth/session";
 
@@ -20,7 +21,7 @@ export default async function PageConnexion() {
       </div>
       {v.verrouille ? (
         <p role="alert" className="card text-center text-sm text-red-700">
-          Trop de codes erronés. Ce poste est bloqué sur cet appareil jusqu&apos;à {v.jusqua?.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Casablanca" })}.
+          Trop de codes erronés. Ce poste est bloqué sur cet appareil jusqu&apos;à {v.jusqua?.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: FUSEAU })}.
         </p>
       ) : (
         <ClavierPin />

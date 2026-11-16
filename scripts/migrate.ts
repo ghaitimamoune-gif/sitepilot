@@ -9,7 +9,8 @@ import postgres from "postgres";
 
 async function main() {
   const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "postgres://eb:eb@localhost:5432/easyburger";
-  const sql = postgres(url, { max: 1 });
+  // prepare: false — compatible avec le pooler de connexions de Supabase (mode transaction).
+  const sql = postgres(url, { max: 1, prepare: false });
   const db = drizzle(sql);
   await migrate(db, { migrationsFolder: "./drizzle" });
   console.log("Migrations appliquées.");

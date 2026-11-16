@@ -27,6 +27,17 @@ async function main() {
   const { genererTachesDuJour } = await import("../lib/services/taches");
   const { tick } = await import("../lib/services/jobs");
 
+  if (process.argv.includes("--si-vide")) {
+    const existe = await sql`select to_regclass('public.postes') as t`;
+    if (existe[0]?.t) {
+      const n = await sql`select count(*)::int as n from postes`;
+      if (n[0].n > 0) {
+        console.log("Base déjà chargée : aucune modification.");
+        await sql.end();
+        return;
+      }
+    }
+  }
   console.log("Base de démonstration : remise à zéro…");
   await sql.unsafe("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; DROP SCHEMA IF EXISTS drizzle CASCADE;");
   await migrate(db, { migrationsFolder: "./drizzle" });

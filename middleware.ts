@@ -58,6 +58,6 @@ function controleAcces(req: NextRequest): NextResponse | null {
 export const config = {
   matcher: [
     // Tout sauf les ressources statiques, le manifeste, les icônes et l'API cron.
-    "/((?!_next/|api/cron|api/photos|manifest\\.json|sw\\.js|hors-ligne\\.html|icon|apple-touch-icon|favicon|robots\\.txt).*)",
+    "/((?!_next/|api/cron|api/photos|api/sante|manifest\\.json|sw\\.js|hors-ligne\\.html|icon|apple-touch-icon|favicon|robots\\.txt).*)",
   ],
 };
