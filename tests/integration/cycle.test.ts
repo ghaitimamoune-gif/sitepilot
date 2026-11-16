@@ -135,7 +135,15 @@ describe.skipIf(!disponible)("cycle complet comptage, commande, réception", () 
   it("un fournisseur soumis à validation passe par les propriétaires", async () => {
     const emballages = await idFournisseur("Emballages et stickers");
     const boite = await idArticle("Boîte burger");
+    const [af] = await db
+      .select()
+      .from(schema.articleFournisseurs)
+      .where(and(eq(schema.articleFournisseurs.articleId, boite), eq(schema.articleFournisseurs.fournisseurId, emballages)));
+    await enregistrerPrix(owner, { articleFournisseurId: af.id, montant: 450, tvaPct: 0, estTtc: false, date: "2026-11-01" });
     const id = await ajouterLigneManuelle(achats, emballages, boite, 2);
+    // Une ligne ajoutée à la main reprend le dernier prix connu : le montant estimé n'est pas nul.
+    const [cmd] = await db.select().from(schema.commandes).where(eq(schema.commandes.id, id));
+    expect(Number(cmd.montantEstime)).toBeCloseTo(900, 6);
     expect(await preparerCommande(achats, id)).toBe("en_attente_validation");
     const alertes = await db.select().from(schema.alertes).where(eq(schema.alertes.type, "commande_a_valider"));
     expect(alertes.some((a) => a.objetId === id && a.roles.includes("proprietaire"))).toBe(true);

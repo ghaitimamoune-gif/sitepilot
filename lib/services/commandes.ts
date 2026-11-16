@@ -351,6 +351,17 @@ export async function genererBrouillons(acteur: Acteur, dateCommande: ISODate = 
   return ids;
 }
 
+/** Dernier prix HT connu d'un article chez un fournisseur (par unité de commande), ou null. */
+async function dernierPrixHt(ex: Tx | typeof db, articleFournisseurId: number): Promise<string | null> {
+  const [p] = await ex
+    .select({ prixHt: schema.prix.prixHt })
+    .from(schema.prix)
+    .where(eq(schema.prix.articleFournisseurId, articleFournisseurId))
+    .orderBy(desc(schema.prix.date), desc(schema.prix.id))
+    .limit(1);
+  return p?.prixHt ?? null;
+}
+
 async function recalculerMontant(ex: Tx | typeof db, commandeId: number): Promise<void> {
   const [r] = await ex
     .select({ total: dsql<string>`coalesce(sum(${schema.commandeLignes.qteCommandee} * coalesce(${schema.commandeLignes.prixEstime}, 0)), 0)` })
@@ -400,7 +411,11 @@ export async function changerFournisseurLigne(acteur: Acteur, ligneId: number, a
   const [af] = await db.select().from(schema.articleFournisseurs).where(eq(schema.articleFournisseurs.id, articleFournisseurId));
   if (!af || af.articleId !== l.articleId) throw new Error("Fournisseur non lié à cet article.");
   if (af.fournisseurId === c.fournisseurId) {
-    await db.update(schema.commandeLignes).set({ articleFournisseurId }).where(eq(schema.commandeLignes.id, ligneId));
+    await db
+      .update(schema.commandeLignes)
+      .set({ articleFournisseurId, prixEstime: await dernierPrixHt(db, articleFournisseurId) })
+      .where(eq(schema.commandeLignes.id, ligneId));
+    await recalculerMontant(db, c.id);
     return c.id;
   }
   const [f] = await db.select().from(schema.fournisseurs).where(eq(schema.fournisseurs.id, af.fournisseurId));
@@ -416,7 +431,7 @@ export async function changerFournisseurLigne(acteur: Acteur, ligneId: number, a
       qteProposee: l.qteProposee,
       qteCommandee: l.qteCommandee,
       qteComptage: String(Number(l.qteCommandee) * (Number(af.qteParUniteCommande) || 1)),
-      prixEstime: null,
+      prixEstime: await dernierPrixHt(tx, articleFournisseurId),
       origine: l.origine,
       prioritaire: l.prioritaire,
       detail: l.detail,
@@ -454,11 +469,18 @@ export async function ajouterLigneManuelle(acteur: Acteur, fournisseurId: number
     .where(and(eq(schema.commandeLignes.commandeId, commandeId), eq(schema.commandeLignes.articleId, articleId)));
   const q = Math.max(0, qteCommandee);
   const qteUnite = Number(af.qteParUniteCommande) || 1;
+  // Dernier prix connu : sans lui, le montant estimé d'une commande saisie à la main restait à 0 DH.
+  const prix = await dernierPrixHt(ex, af.id);
   if (existante) {
     const total = Number(existante.qteCommandee) + q;
     await ex
       .update(schema.commandeLignes)
-      .set({ qteCommandee: String(total), qteComptage: String(total * qteUnite), origine: existante.origine === "moteur" ? origine : existante.origine })
+      .set({
+        qteCommandee: String(total),
+        qteComptage: String(total * qteUnite),
+        origine: existante.origine === "moteur" ? origine : existante.origine,
+        prixEstime: existante.prixEstime ?? prix,
+      })
       .where(eq(schema.commandeLignes.id, existante.id));
   } else {
     await ex.insert(schema.commandeLignes).values({
@@ -468,6 +490,7 @@ export async function ajouterLigneManuelle(acteur: Acteur, fournisseurId: number
       qteProposee: String(q),
       qteCommandee: String(q),
       qteComptage: String(q * qteUnite),
+      prixEstime: prix,
       origine,
     });
   }
