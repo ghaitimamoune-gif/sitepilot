@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NavBas, type ElementNav } from "@/components/NavBas";
+import { SignalerProbleme } from "@/components/SignalerProbleme";
 import { aLeDroit, type Role } from "@/lib/auth/droits";
 import { exigerSession, type Session } from "@/lib/auth/session";
 import { compterAlertesOuvertes } from "@/lib/services/alertes";
@@ -68,6 +69,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
     ["manager", "resp_cuisine", "resp_salle"].includes(s.poste.role) ? compterRemontees(s.poste.role) : Promise.resolve(0),
   ]);
   const nav = elementsNav(s, alertes.total, remontees);
+  // Mode test : bandeau et bouton « Signaler un problème » (jamais en production).
+  const modeTest = process.env.MODE_DEMO === "1";
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col">
       <header className="sticky top-0 z-30 flex items-center justify-between gap-2 border-b border-line bg-bg/95 px-4 py-2 backdrop-blur">
@@ -75,11 +78,19 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-sm font-bold text-white display">EB</span>
           <span className="display text-lg font-semibold leading-none">Ops</span>
         </Link>
-        <Link href="/plus" className="min-w-0 truncate text-right text-sm">
-          <span className="font-semibold">{s.personne.prenom}</span>
-          <span className="block truncate text-xs text-muted">{s.poste.nom}</span>
-        </Link>
+        <div className="flex min-w-0 items-center gap-2">
+          <Link href="/plus" className="min-w-0 truncate text-right text-sm">
+            <span className="font-semibold">{s.personne.prenom}</span>
+            <span className="block truncate text-xs text-muted">{s.poste.nom}</span>
+          </Link>
+          {modeTest && <SignalerProbleme />}
+        </div>
       </header>
+      {modeTest && (
+        <p className="bg-amber-100 px-4 py-1 text-center text-xs font-medium text-amber-900 dark:bg-amber-900/50 dark:text-amber-100">
+          Version de test — données de démonstration. 💬 pour signaler un problème.
+        </p>
+      )}
       <main className="flex-1 px-4 pb-24 pt-4">{children}</main>
       <NavBas elements={nav} />
     </div>

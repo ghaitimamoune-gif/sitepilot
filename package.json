@@ -18,7 +18,8 @@
     "test:e2e": "tsx tests/e2e/parcours.ts",
     "sauvegarde": "bash scripts/sauvegarde.sh",
     "restauration:test": "bash scripts/restauration-test.sh",
-    "db:initialiser": "tsx scripts/initialiser.ts"
+    "db:initialiser": "tsx scripts/initialiser.ts",
+    "demo": "tsx scripts/demo.ts"
   },
   "dependencies": {
     "@types/qrcode": "^1.5.5",

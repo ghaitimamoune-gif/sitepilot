@@ -33,7 +33,7 @@ export interface Session {
 const cookieOptions = (maxAge: number) => ({
   httpOnly: true,
   sameSite: "lax" as const,
-  secure: process.env.NODE_ENV === "production",
+  secure: process.env.NODE_ENV === "production" && process.env.MODE_DEMO !== "1",
   path: "/",
   maxAge,
 });

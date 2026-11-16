@@ -871,6 +871,17 @@ export const journal = pgTable(
   (t) => [index("journal_at_idx").on(t.at), index("journal_entite_idx").on(t.entite, t.entiteId)],
 );
 
+/** Remarques signalées depuis l'application pendant la recette (bouton « Signaler un problème »). */
+export const retours = pgTable("retours", {
+  id: serial("id").primaryKey(),
+  page: text("page").notNull(),
+  texte: text("texte").notNull(),
+  posteId: integer("poste_id"),
+  personneId: integer("personne_id"),
+  traite: boolean("traite").notNull().default(false),
+  creeLe: timestamp("cree_le", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const tachesJob = pgTable("taches_job", {
   cle: text("cle").primaryKey(),
   derniereExecution: timestamp("derniere_execution", { withTimezone: true }).notNull().defaultNow(),
