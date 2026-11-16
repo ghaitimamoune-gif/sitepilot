@@ -10,12 +10,21 @@ declare global {
   var __ebSql: ReturnType<typeof postgres> | undefined;
 }
 
-/** Connexion unique, réutilisée entre les rechargements du serveur de développement. */
+/**
+ * Connexion unique, réutilisée entre les rechargements du serveur de développement.
+ *
+ * Supabase : utiliser le pooler en mode SESSION (port 5432), pas le mode transaction (6543).
+ * Quand toutes ses connexions sont occupées, postgres-js enchaîne les requêtes suivantes sur une
+ * connexion déjà occupée (pipelining) ; le mode transaction rend la connexion serveur après la
+ * première réponse et la requête suivante n'aboutit jamais (blocage constaté dès que plus de
+ * 10 requêtes partent en même temps). En mode session, chaque connexion occupe une connexion du
+ * pool Supabase (15 sur l'offre gratuite) : d'où 5 connexions au plus par instance.
+ */
 export const sql =
   globalThis.__ebSql ??
   postgres(url, {
-    max: 10,
-    idle_timeout: 30,
+    max: Number(process.env.DB_CONNEXIONS_MAX ?? 5),
+    idle_timeout: 20,
     connect_timeout: 10,
     prepare: false,
     transform: { undefined: null },

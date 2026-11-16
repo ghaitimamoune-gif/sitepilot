@@ -27,7 +27,15 @@ export async function POST(req: Request) {
   const flux = new ReadableStream<Uint8Array>({
     async start(controller) {
       const t0 = Date.now();
-      const log = (m: string) => controller.enqueue(encodeur.encode(`${((Date.now() - t0) / 1000).toFixed(1)}s ${m}\n`));
+      let derniere = "";
+      const log = (m: string) => {
+        derniere = m;
+        controller.enqueue(encodeur.encode(`${((Date.now() - t0) / 1000).toFixed(1)}s ${m}\n`));
+      };
+      // Signe de vie : distingue une requête en attente (le battement continue) d'un calcul bloqué.
+      const battement = setInterval(() => {
+        controller.enqueue(encodeur.encode(`${((Date.now() - t0) / 1000).toFixed(1)}s … toujours en cours (dernière étape : ${derniere.trim()})\n`));
+      }, 15_000);
       try {
         if (action === "etat") await etat(log);
         else if (action === "liberer") await liberer(log);
@@ -43,6 +51,7 @@ export async function POST(req: Request) {
       } catch (e) {
         log(`ERREUR : ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`);
       } finally {
+        clearInterval(battement);
         controller.close();
       }
     },
